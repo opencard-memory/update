@@ -1,0 +1,39 @@
+{
+  "1": {
+    "_accountCreatedDate": "2026-10-29-(목요일) 14:34:34",
+    "_accountId": 1,
+    "_allianceId": 0,
+    "_allianceMemberEntry": null,
+    "_avatarName": "superidol",
+    "_homeBrawlerGlobalId": 16000000,
+    "_homeId": 0,
+    "_intValueEntryX": {},
+    "_intValueEntryY": {
+      "1": {
+        "Key": 1,
+        "Value": 41000038
+      }
+    },
+    "_languageLaserFactory": 0,
+    "_lastCreateAllianceTime": 0,
+    "_lastOnlineTime": 1793258723,
+    "_logicOfferBundleList": [],
+    "_maxTrophies": 0,
+    "_nameChangeCount": 0,
+    "_nameChangeEndTime": 0,
+    "_nameColorGlobalId": 43000000,
+    "_nameSetByUser": true,
+    "_notificationFactoryIntraSignedId": 10,
+    "_passToken": "I4Bx4FQWsn3akl2SffY6ekdxwJVxIWagmgmWbUaQJ8Ux8yaIi7B5zrrlswAEs",
+    "_playerAge": 999,
+    "_playerStatus": 0,
+    "_playerThumbnailGlobalId": 28000000,
+    "_playTimeSeconds": 678,
+    "_sessionCount": 4,
+    "_startPlayTimeSeconds": 1793252074,
+    "_supportedCreator": "BSL-V41",
+    "_trophies": 0,
+    "_trophyRoadProgress": 1,
+    "_userIsAuthed": true
+  }
+}
