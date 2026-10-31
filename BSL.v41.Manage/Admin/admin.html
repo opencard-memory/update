@@ -162,7 +162,31 @@ async function vDash(m){
   const draw=async()=>{
     const r=await api('GET','/api/status');if(cur!=='dash')return;const s=r.data;
     const stat=(a,b,c)=>el('div',{class:'stat'},el('span',{},a),el('b',{},b),c?el('span',{},c):null);
-    m.replaceChildren(el('h2',{},'서버 현황'),
+    const oldMsg=m.querySelector('[data-maint-message]');
+    const oldStart=m.querySelector('[data-maint-start]');
+    const oldEnd=m.querySelector('[data-maint-end]');
+    const toLocalInput=value=>{if(!value)return '';const d=new Date(value);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16)};
+    const maintenanceMessage=el('input',{'data-maint-message':true, value:oldMsg?oldMsg.value:(s.maintenanceMessage||'서버 점검 중입니다. 잠시 후 다시 접속해 주세요.'), maxlength:300, placeholder:'점검 안내 문구', style:'width:100%'});
+    const maintenanceStart=el('input',{type:'datetime-local','data-maint-start':true,value:oldStart?oldStart.value:toLocalInput(s.maintenanceStartUtc)});
+    const maintenanceEnd=el('input',{type:'datetime-local','data-maint-end':true,value:oldEnd?oldEnd.value:toLocalInput(s.maintenanceEndUtc)});
+    const saveMaintenance=async(manualEnabled)=>{
+      let startUtc=null,endUtc=null;
+      try{
+        if(maintenanceStart.value)startUtc=new Date(maintenanceStart.value).toISOString();
+        if(maintenanceEnd.value)endUtc=new Date(maintenanceEnd.value).toISOString();
+      }catch(e){return toast('점검 날짜와 시간을 확인하세요.',true)}
+      if(startUtc&&endUtc&&new Date(endUtc)<=new Date(startUtc))return toast('종료 시각은 시작 시각보다 뒤여야 합니다.',true);
+      const x=await act('/api/maintenance',{enabled:manualEnabled,message:maintenanceMessage.value,startUtc,endUtc});
+      if(x.ok)await draw();
+    };
+    const maintenanceCard=el('div',{class:'card'},
+      el('div',{class:'row sp'},el('div',{},el('b',{},'서버 점검'),el('div',{class:'mute'},s.maintenanceEnabled?'현재 점검 중':'현재 정상 운영 중')),el('span',{class:'badge '+(s.maintenanceEnabled?'b-ban':'b-on')},s.maintenanceEnabled?'점검 ON':'점검 OFF')),
+      el('div',{style:'margin-top:10px'},maintenanceMessage),
+      el('div',{class:'row',style:'margin-top:10px'},el('div',{style:'flex:1'},el('div',{class:'mute'},'점검 시작'),maintenanceStart),el('div',{style:'flex:1'},el('div',{class:'mute'},'점검 종료'),maintenanceEnd)),
+      el('div',{class:'hint'},'시작과 종료를 지정하면 해당 시간에 자동으로 점검 ON/OFF 됩니다. 두 시간을 비우면 예약이 해제됩니다. 시간은 이 화면을 여는 기기의 현지 시간으로 입력됩니다.'),
+      el('div',{class:'row',style:'margin-top:10px'},el('button',{class:'pri',onclick:()=>saveMaintenance(s.maintenanceManualEnabled)},'예약 저장'),el('button',{class:s.maintenanceManualEnabled?'bad':'ghost',onclick:()=>saveMaintenance(!s.maintenanceManualEnabled)},s.maintenanceManualEnabled?'수동 점검 끄기':'수동 점검 켜기'))
+    );
+    m.replaceChildren(el('h2',{},'서버 현황'),maintenanceCard,
       el('div',{class:'grid'},stat('접속 중',num(s.online)),stat('전체 유저',num(s.totalAccounts)),stat('정지 계정',num(s.banned),`영구 ${num(s.permanentBanned)}`),
         stat('상점 상품(판매중)',num(s.shopOffers)),stat('가동 시간',dur(s.uptimeSeconds)),stat('메모리',s.memoryMb+' MB'),
         stat('유저 보유 젬',num(s.totalGems)),stat('유저 보유 골드',num(s.totalGold))),
@@ -175,8 +199,8 @@ async function vDash(m){
 }
 function userTable(list,empty){
   if(!list.length)return el('div',{class:'card mute'},empty);
-  return el('div',{class:'card tw'},el('table',{},el('thead',{},el('tr',{},['닉네임','태그','트로피','젬','골드','상태'].map(x=>el('th',{},x)))),
-    el('tbody',{},list.map(u=>el('tr',{class:'click',onclick:()=>openUser(u.id)},el('td',{},u.name||'(이름 없음)'),el('td',{class:'mute'},u.tag),el('td',{},num(u.trophies)),el('td',{class:'gem'},num(u.gems)),el('td',{class:'gold'},num(u.gold)),el('td',{},badge(u)))))));
+  return el('div',{class:'card tw'},el('table',{},el('thead',{},el('tr',{},['닉네임','태그','트로피','젬','골드','권한','상태'].map(x=>el('th',{},x)))),
+    el('tbody',{},list.map(u=>el('tr',{class:'click',onclick:()=>openUser(u.id)},el('td',{},u.name||'(이름 없음)'),el('td',{class:'mute'},u.tag),el('td',{},num(u.trophies)),el('td',{class:'gem'},num(u.gems)),el('td',{class:'gold'},num(u.gold)),el('td',{},u.isAdmin?el('span',{class:'badge b-on'},'관리자'):el('span',{class:'mute'},'일반')),el('td',{},badge(u)))))));
 }
 
 /* ---------- users ---------- */
@@ -233,6 +257,7 @@ async function openUser(id){
     m.box.replaceChildren(
       el('div',{class:'row sp'},el('div',{},el('h2',{},u.name||'(이름 없음)'),el('div',{class:'mute'},`${u.tag} · ID ${u.id} · 트로피 ${num(u.trophies)} (최고 ${num(u.maxTrophies)})`)),el('div',{class:'row'},badge(u),el('button',{onclick:m.close},'닫기'))),
       el('div',{class:'mute',style:'margin-top:6px'},`가입 ${u.created||'-'} · 마지막 접속 ${u.online?'지금':ago(u.lastOnline)} · 플레이 ${dur(u.playTime)} · 접속 ${num(u.sessions)}회`),
+      el('div',{class:'sec'},el('h3',{},'관리자 권한'),el('div',{class:'mute'},u.isAdmin?'관리자: 점검 중에도 로그인할 수 있습니다.':'일반 유저: 점검 중에는 로그인이 차단됩니다.'),el('button',{class:u.isAdmin?'bad':'pri',onclick:async()=>{if(await confirmBox(u.isAdmin?'관리자 권한 해제':'관리자 지정',u.isAdmin?'이 유저의 관리자 권한을 해제할까요?':'이 유저를 점검 중 로그인 가능한 관리자로 지정할까요?',true))run('/api/user/admin',{id,enabled:!u.isAdmin})}},u.isAdmin?'관리자 해제':'관리자 지정')),
       el('div',{class:'sec'},el('h3',{},'재화'),moneyRows,el('div',{style:'margin-top:8px'},check('접속 중이면 즉시 반영(홈 화면 새로고침)',refresh,v=>refresh=v))),
       el('div',{class:'sec'},el('h3',{},'트로피'),el('div',{class:'row'},[-100,-10,10,100].map(s=>el('button',{onclick:()=>{tro.value=Math.max(0,+tro.value+s)}},(s>0?'+':'')+s)),tro,el('button',{class:'pri',onclick:()=>run('/api/user/trophies',{id,trophies:+tro.value,refresh})},'적용'))),
       el('div',{class:'sec'},el('h3',{},'닉네임'),el('div',{class:'row'},nick,el('button',{class:'pri',onclick:()=>run('/api/user/rename',{id,name:nick.value})},'변경'),el('button',{onclick:()=>{nick.value='Brawler'}},'기본 닉네임'))),
@@ -271,7 +296,7 @@ async function vEvents(m){
         el('button',{onclick:async()=>{await act('/api/events/reroll',{});go('events')}},'🔀 지금 맵 새로 뽑기')),
         ev.current.length?el('div',{class:'tw',style:'margin-top:8px'},el('table',{},el('tbody',{},ev.current.map(e=>el('tr',{},el('td',{},'슬롯 '+e.slot),el('td',{},modeKo(e.mode)),el('td',{},e.map),el('td',{class:'mute'},dur(e.endsIn))))))):el('div',{class:'mute',style:'margin-top:8px'},'진행 중인 이벤트 없음')),
       el('div',{class:'row',style:'margin:14px 0'},el('b',{},'교체 주기'),sel(ROT.concat(ROT.some(x=>x[0]===st.rotate)?[]:[[st.rotate,dur(st.rotate)]]),st.rotate,v=>{st.rotate=+v})),
-      cards,
+      ...cards,
       el('div',{class:'row'},el('button',{disabled:!left.length,onclick:()=>{st.slots.push({slot:left[0],category:'',game_modes:[],locations:[],enabled:true});draw()}},'➕ 슬롯 추가'),el('span',{class:'mute'},left.length?'':'모든 슬롯을 사용 중입니다.')),
       el('div',{class:'save'},el('button',{class:'pri',onclick:async()=>{const x=await act('/api/events/save',{rotate_seconds:st.rotate,slots:st.slots.map(s=>({slot:s.slot,category:s.category,game_modes:s.game_modes,locations:s.locations,enabled:s.enabled}))});if(x.ok)go('events')}},'💾 저장하고 바로 적용'),el('span',{class:'mute'},'접속 중인 유저에게도 즉시 전송됩니다.')));
   };

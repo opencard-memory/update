@@ -142,6 +142,7 @@ public static class AdminOps
         return new Dictionary<string, object?>
         {
             ["id"] = id,
+            ["isAdmin"] = MaintenanceControl.IsAdmin(id),
             ["tag"] = GetTag(id),
             ["name"] = Str(account, AccountStructure.AvatarName),
             ["trophies"] = Int(account, AccountStructure.Trophies),

@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "Hs8sqVVJtg8=",
+  "success": true,
+  "projectFilePath": "C:\\update\\BSL.v41.Manage\\BSL.v41.Manage.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\문정현\\.nuget\\packages\\newtonsoft.json\\13.0.3\\newtonsoft.json.13.0.3.nupkg.sha512",
+    "C:\\Users\\문정현\\.nuget\\packages\\microsoft.netcore.app.ref\\8.0.32\\microsoft.netcore.app.ref.8.0.32.nupkg.sha512",
+    "C:\\Users\\문정현\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.32\\microsoft.windowsdesktop.app.ref.8.0.32.nupkg.sha512",
+    "C:\\Users\\문정현\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\8.0.32\\microsoft.aspnetcore.app.ref.8.0.32.nupkg.sha512",
+    "C:\\Users\\문정현\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\8.0.32\\microsoft.netcore.app.host.win-x64.8.0.32.nupkg.sha512"
+  ],
+  "logs": []
+}

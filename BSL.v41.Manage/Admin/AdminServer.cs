@@ -213,6 +213,12 @@ public static class AdminServer
                 case "GET /api/status":
                     result = GetStatus();
                     break;
+                case "POST /api/maintenance":
+                    result = Audit(context, "maintenance", body, ConfigureMaintenance(body));
+                    break;
+                case "POST /api/user/admin":
+                    result = Audit(context, "user.admin", body, SetUserAdmin(body));
+                    break;
                 case "GET /api/users":
                     result = GetUsers(query["q"].ToString(), query["filter"].ToString(), query["sort"].ToString());
                     break;
@@ -438,10 +444,49 @@ public static class AdminServer
         return long.TryParse(text, out var value) ? value : -1;
     }
 
+    private static AdminResult ConfigureMaintenance(JObject body)
+    {
+        var message = Str(body, "message");
+        if (message.Length > 300) return AdminResult.Fail("점검 안내 문구는 300자 이내로 입력하세요.");
+
+        DateTimeOffset? start = null;
+        DateTimeOffset? end = null;
+        var startText = Str(body, "startUtc");
+        var endText = Str(body, "endUtc");
+        if (!string.IsNullOrWhiteSpace(startText))
+        {
+            if (!DateTimeOffset.TryParse(startText, out var parsedStart))
+                return AdminResult.Fail("점검 시작 시각이 올바르지 않습니다.");
+            start = parsedStart.ToUniversalTime();
+        }
+        if (!string.IsNullOrWhiteSpace(endText))
+        {
+            if (!DateTimeOffset.TryParse(endText, out var parsedEnd))
+                return AdminResult.Fail("점검 종료 시각이 올바르지 않습니다.");
+            end = parsedEnd.ToUniversalTime();
+        }
+        if (end.HasValue && (!start.HasValue || end.Value <= start.Value))
+            return AdminResult.Fail("점검 종료 시각은 시작 시각보다 뒤여야 합니다.");
+
+        MaintenanceControl.Configure(Bool(body, "enabled"), message, start, end);
+        return AdminResult.Success("점검 설정을 저장했습니다.");
+    }
+
+    private static AdminResult SetUserAdmin(JObject body)
+    {
+        var id = Long(body, "id");
+        if (id <= 0 || AdminOps.Resolve(id) == null)
+            return AdminResult.Fail("유저를 찾을 수 없습니다.");
+        var enabled = Bool(body, "enabled");
+        MaintenanceControl.SetAdmin(id, enabled);
+        return AdminResult.Success(enabled ? "관리자로 지정했습니다." : "관리자 권한을 해제했습니다.");
+    }
+
     // ---------------------------------------------------------------- status / users
 
     private static object GetStatus()
     {
+        var maintenance = MaintenanceControl.GetSnapshot();
         var accounts = AdminOps.GetAllAccounts();
         var now = LogicTimeUtil.GetTimestamp();
         var online = accounts.Where(x => AdminOps.IsOnline(x.GetAccountId())).ToList();
@@ -476,6 +521,12 @@ public static class AdminServer
             topTrophies = accounts.Select(AdminOps.Summary)
                 .OrderByDescending(x => Convert.ToInt32(x["trophies"])).Take(5).ToList(),
             events,
+            maintenanceEnabled = maintenance.Enabled,
+            maintenanceManualEnabled = maintenance.ManualEnabled,
+            maintenanceScheduledActive = maintenance.ScheduledActive,
+            maintenanceMessage = maintenance.Message,
+            maintenanceStartUtc = maintenance.StartUtc,
+            maintenanceEndUtc = maintenance.EndUtc,
             shopOffers = ShopCatalog.Load().Count(x => x.Enabled && !ShopCatalog.IsExpired(x)),
             nextRotateIn = Math.Max(DynamicServerParameters.NextRotateTime - now, 0)
         };

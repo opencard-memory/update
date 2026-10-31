@@ -3,6 +3,7 @@ using BSL.v41.General.Cloud;
 using BSL.v41.General.GHelp;
 using BSL.v41.General.NetIsland.LaserBattle;
 using BSL.v41.General.Networking;
+using BSL.v41.Logic.Admin;
 using BSL.v41.Logic.Database;
 using BSL.v41.Logic.Database.Account;
 using BSL.v41.Logic.Database.Alliance;
@@ -793,6 +794,23 @@ public class MessageManager(
                 {
                     accountLvl = 3; // clear app data
                 }
+        }
+
+        var maintenance = MaintenanceControl.GetSnapshot();
+        var maintenanceAdmin = accountLvl == 4 && MaintenanceControl.IsAdmin(piranhaMessage.GetAccountId());
+        if (maintenance.Enabled && !maintenanceAdmin && (accountLvl == 1 || accountLvl == 4))
+        {
+            var maintenanceFailedMessage = new LoginFailedMessage();
+            maintenanceFailedMessage.SetErrorCode(Convert.ToInt32(ErrorCodeHelperTable.CustomMessage));
+            maintenanceFailedMessage.SetContentUrl("");
+            maintenanceFailedMessage.SetRedirectDomain("");
+            maintenanceFailedMessage.SetUpdateUrl("");
+            maintenanceFailedMessage.SetRemoveResourceFingerprintData("");
+            maintenanceFailedMessage.SetSecondsUntilMaintenanceEnd(-1);
+            maintenanceFailedMessage.SetShowContactSupportForBan(false);
+            maintenanceFailedMessage.SetReason(maintenance.Message);
+            SendMessage(maintenanceFailedMessage);
+            return 0;
         }
 
         switch (accountLvl)

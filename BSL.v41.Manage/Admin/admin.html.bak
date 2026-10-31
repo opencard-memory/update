@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BSL 어드민 콘솔</title>
+<style>
+:root{--bg:#10131a;--panel:#181c26;--panel2:#1f2430;--line:#2b3140;--text:#e8ebf2;--mute:#8a93a6;--acc:#5b8cff;--acc2:#3d6df0;--ok:#35c27a;--warn:#f0a93a;--bad:#ef5a5a;--gem:#c06bff;--gold:#f5c542}
+@media (prefers-color-scheme:light){:root{--bg:#f2f4f8;--panel:#fff;--panel2:#f6f7fb;--line:#dde1ea;--text:#1d2230;--mute:#667085}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.45 -apple-system,"Segoe UI","Malgun Gothic","Apple SD Gothic Neo",sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px 12px}
+button:hover{border-color:var(--acc)}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}button.pri:hover{background:var(--acc2)}
+button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+button.ghost{background:transparent}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 10px;outline:none;max-width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--acc)}
+input[type=number]{width:120px}
+textarea{width:100%;min-height:120px;resize:vertical}
+#app{display:flex;min-height:100%}
+nav{width:200px;background:var(--panel);border-right:1px solid var(--line);padding:16px 10px;position:sticky;top:0;height:100vh;flex-shrink:0}
+nav h1{font-size:16px;margin:4px 10px 16px}
+nav a{display:block;padding:9px 12px;border-radius:8px;color:var(--mute);cursor:pointer;margin-bottom:2px;text-decoration:none}
+nav a.on{background:var(--panel2);color:var(--text);font-weight:600}
+nav a:hover{color:var(--text)}
+nav .sp{flex:1}
+main{flex:1;min-width:0;padding:22px 26px 80px}
+h2{margin:0 0 16px;font-size:20px}
+h3{margin:18px 0 8px;font-size:14px;color:var(--mute);font-weight:600}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px}
+.stat b{display:block;font-size:24px;margin-top:4px}
+.stat span{color:var(--mute);font-size:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.row.sp{justify-content:space-between}
+.mute{color:var(--mute)}
+.chip{display:inline-block;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);cursor:pointer;user-select:none;margin:2px 4px 2px 0}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.chip.off{opacity:.45}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600}
+.b-on{background:rgba(53,194,122,.18);color:var(--ok)}
+.b-off{background:rgba(138,147,166,.18);color:var(--mute)}
+.b-ban{background:rgba(239,90,90,.18);color:var(--bad)}
+.b-tmp{background:rgba(240,169,58,.18);color:var(--warn)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--mute);font-weight:600;font-size:12px}
+tr.click{cursor:pointer}tr.click:hover td{background:var(--panel2)}
+.tw{overflow-x:auto}
+.gem{color:var(--gem);font-weight:600}.gold{color:var(--gold);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;border-radius:0;background:var(--panel2)}
+.seg button.on{background:var(--acc);color:#fff}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;z-index:50;overflow:auto}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:min(760px,100%);padding:20px}
+.box.sm{width:min(440px,100%)}
+.box h2{margin-bottom:6px}
+.sec{border-top:1px solid var(--line);margin-top:16px;padding-top:12px}
+.sec>h3{margin-top:0}
+.money{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center;padding:8px 0;border-bottom:1px dashed var(--line)}
+.money .v{font-size:18px;font-weight:700}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);padding:10px 18px;border-radius:10px;background:var(--ok);color:#fff;z-index:99;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+.toast.err{background:var(--bad)}
+#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
+#login .card{width:min(360px,92vw)}
+.slot{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--panel)}
+.slot.dis{opacity:.6}
+.mapbox{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-top:8px;columns:2 200px}
+.mapbox label{display:block;padding:2px 0;cursor:pointer}
+.pick{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;margin-top:6px}
+.pick div{padding:7px 10px;cursor:pointer;border-bottom:1px solid var(--line)}.pick div:hover{background:var(--panel2)}
+.itemrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;padding:8px;border:1px solid var(--line);border-radius:10px}
+.save{position:fixed;left:200px;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:12px 26px;display:flex;gap:10px;align-items:center;z-index:20}
+.hint{font-size:12px;color:var(--mute);margin-top:6px}
+@media(max-width:800px){#app{flex-direction:column}nav{width:100%;height:auto;position:static;display:flex;flex-wrap:wrap;gap:4px;padding:10px}nav h1{width:100%;margin:0 6px 4px}main{padding:14px 12px 90px}.save{left:0;padding:10px 12px}}
+</style>
+</head>
+<body>
+<div id="login" style="display:none"></div>
+<div id="app" style="display:none">
+  <nav id="nav"></nav>
+  <main id="main"></main>
+</div>
+<script>
+'use strict';
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const el=(tag,attrs,...kids)=>{const e=document.createElement(tag);for(const[k,v]of Object.entries(attrs||{})){if(k==='class')e.className=v;else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);else if(v===true)e.setAttribute(k,'');else if(v!==false&&v!=null)e.setAttribute(k,v)}for(const c of kids.flat(9)){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(String(c)))}return e};
+const num=n=>Number(n||0).toLocaleString('ko-KR');
+const dur=s=>{s=Math.max(0,Math.floor(s));const d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60);return d?`${d}일 ${h}시간`:h?`${h}시간 ${m}분`:m?`${m}분 ${s%60}초`:`${s}초`};
+const when=t=>t?new Date(t*1000).toLocaleString('ko-KR'):'-';
+const ago=t=>t?dur(Date.now()/1000-t)+' 전':'-';
+function toast(msg,err){const t=el('div',{class:'toast'+(err?' err':'')},msg);document.body.append(t);setTimeout(()=>t.remove(),2600)}
+async function api(method,path,body){
+  const r=await fetch(path,{method,headers:{'X-Requested-With':'bsl-admin','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,credentials:'same-origin'});
+  let data={};try{data=await r.json()}catch(e){}
+  if(r.status===401&&path!=='/api/login'){showLogin();throw new Error('auth')}
+  return{ok:r.ok&&data.ok!==false,data,status:r.status};
+}
+async function act(path,body,quiet){
+  const r=await api('POST',path,body);
+  if(!quiet||!r.ok)toast(r.data.message||(r.ok?'완료':'실패'),!r.ok);
+  return r;
+}
+function modal(content,small){
+  const ov=el('div',{class:'ov'});
+  const box=el('div',{class:'box'+(small?' sm':'')},content);
+  ov.append(box);
+  ov.addEventListener('mousedown',e=>{if(e.target===ov&&!ov.dataset.lock)close()});
+  const close=()=>{ov.remove()};
+  document.body.append(ov);
+  return{box,close,ov};
+}
+function confirmBox(title,text,danger){
+  return new Promise(res=>{
+    const m=modal([el('h2',{},title),el('p',{class:'mute'},text),el('div',{class:'row',style:'justify-content:flex-end;margin-top:14px'},
+      el('button',{onclick:()=>{m.close();res(false)}},'취소'),
+      el('button',{class:danger?'bad':'pri',onclick:()=>{m.close();res(true)}},'확인'))],true);
+  });
+}
+const KO={GemGrab:'젬 그랩',Heist:'하이스트',Bounty:'바운티',BrawlBall:'브롤 볼',Showdown:'솔로 쇼다운',DuoShowdown:'듀오 쇼다운',Siege:'시즈',KingOfHill:'핫존',Knockout:'녹아웃',Takedown:'테이크다운',CTF:'깃발 뺏기',TagTeam:'태그팀',BigGame:'빅 게임',LoneStar:'론 스타',HoldTheBall:'홀드 더 볼',VolleyBrawl:'발리 브롤',BasketBrawl:'바스켓 브롤',RoboRumble:'로보 럼블',ProtectKing:'킹 지키기',BossFight:'보스전',Tutorial:'튜토리얼',Training:'훈련장',BossFight_TownCrush:'타운 크러시'};
+const modeKo=id=>KO[id]||id;
+const field=(label,node)=>el('div',{style:'margin-bottom:10px'},el('div',{class:'mute',style:'font-size:12px;margin-bottom:4px'},label),node);
+function sel(options,value,onchange){const s=el('select',{},options.map(o=>el('option',{value:o[0]},o[1])));s.value=value;if(onchange)s.addEventListener('change',()=>onchange(s.value));return s}
+function check(label,checked,onchange){const c=el('input',{type:'checkbox'});c.checked=!!checked;c.addEventListener('change',()=>onchange(c.checked));return el('label',{style:'cursor:pointer;display:inline-flex;gap:6px;align-items:center'},c,label)}
+function badge(u){if(u.banType===2)return el('span',{class:'badge b-ban'},'영구 정지');if(u.banType===1)return el('span',{class:'badge b-tmp'},'일시 정지');return u.online?el('span',{class:'badge b-on'},'접속 중'):el('span',{class:'badge b-off'},'오프라인')}
+
+/* ---------- login ---------- */
+function showLogin(){
+  $('#app').style.display='none';const L=$('#login');L.style.display='flex';L.replaceChildren();
+  const pw=el('input',{type:'password',placeholder:'어드민 비밀번호',style:'width:100%;margin:10px 0'});
+  const go=async()=>{const r=await api('POST','/api/login',{password:pw.value});if(r.ok){L.style.display='none';boot()}else toast(r.data.message||'로그인 실패',true)};
+  pw.addEventListener('keydown',e=>{if(e.key==='Enter')go()});
+  L.append(el('div',{class:'card'},el('h2',{},'BSL 어드민 콘솔'),el('div',{class:'mute'},'비밀번호는 서버 SaveBase/admin_config.json 에 있습니다.'),pw,el('button',{class:'pri',style:'width:100%',onclick:go},'로그인')));
+  pw.focus();
+}
+
+/* ---------- shell ---------- */
+const VIEWS={dash:['📊 현황',vDash],users:['👥 유저 관리',vUsers],events:['🎮 이벤트',vEvents],shop:['🛒 상점',vShop],mail:['✉️ 우편',vMail],log:['📜 작업 기록',vLog]};
+let cur='dash',timer=null,CAT=null;
+function boot(){
+  $('#app').style.display='flex';
+  const nav=$('#nav');nav.replaceChildren(el('h1',{},'BSL 어드민'));
+  for(const[k,v]of Object.entries(VIEWS))nav.append(el('a',{'data-k':k,onclick:()=>go(k)},v[0]));
+  nav.append(el('a',{onclick:async()=>{await api('POST','/api/logout',{});showLogin()},style:'margin-top:18px'},'🚪 로그아웃'));
+  go((location.hash||'#dash').slice(1));
+}
+function go(k,arg){
+  if(!VIEWS[k])k='dash';cur=k;location.hash=k;clearInterval(timer);
+  document.querySelectorAll('nav a[data-k]').forEach(a=>a.classList.toggle('on',a.dataset.k===k));
+  const m=$('#main');m.replaceChildren(el('div',{class:'mute'},'불러오는 중...'));
+  VIEWS[k][1](m,arg).catch(e=>{if(e.message!=='auth')m.replaceChildren(el('div',{class:'card'},'오류: '+e.message))});
+}
+async function catalog(){if(!CAT){const r=await api('GET','/api/catalog');CAT=r.data}return CAT}
+
+/* ---------- dashboard ---------- */
+async function vDash(m){
+  const draw=async()=>{
+    const r=await api('GET','/api/status');if(cur!=='dash')return;const s=r.data;
+    const stat=(a,b,c)=>el('div',{class:'stat'},el('span',{},a),el('b',{},b),c?el('span',{},c):null);
+    m.replaceChildren(el('h2',{},'서버 현황'),
+      el('div',{class:'grid'},stat('접속 중',num(s.online)),stat('전체 유저',num(s.totalAccounts)),stat('정지 계정',num(s.banned),`영구 ${num(s.permanentBanned)}`),
+        stat('상점 상품(판매중)',num(s.shopOffers)),stat('가동 시간',dur(s.uptimeSeconds)),stat('메모리',s.memoryMb+' MB'),
+        stat('유저 보유 젬',num(s.totalGems)),stat('유저 보유 골드',num(s.totalGold))),
+      el('h3',{},`현재 이벤트 (다음 교체까지 ${dur(s.nextRotateIn)})`),
+      el('div',{class:'card tw'},s.events.length?el('table',{},el('thead',{},el('tr',{},['슬롯','종류','맵','남은 시간'].map(x=>el('th',{},x)))),el('tbody',{},s.events.map(e=>el('tr',{},el('td',{},e.slot),el('td',{},modeKo(e.mode)),el('td',{},e.map),el('td',{},dur(e.endsIn)))))):el('div',{class:'mute'},'진행 중인 이벤트가 없습니다. 이벤트 메뉴에서 슬롯을 추가하세요.')),
+      el('h3',{},'접속 중인 유저'),userTable(s.onlineUsers,'접속 중인 유저가 없습니다.'),
+      el('h3',{},'트로피 TOP 5'),userTable(s.topTrophies,'유저가 없습니다.'));
+  };
+  await draw();timer=setInterval(()=>{if(!document.querySelector('.ov'))draw().catch(()=>{})},5000);
+}
+function userTable(list,empty){
+  if(!list.length)return el('div',{class:'card mute'},empty);
+  return el('div',{class:'card tw'},el('table',{},el('thead',{},el('tr',{},['닉네임','태그','트로피','젬','골드','상태'].map(x=>el('th',{},x)))),
+    el('tbody',{},list.map(u=>el('tr',{class:'click',onclick:()=>openUser(u.id)},el('td',{},u.name||'(이름 없음)'),el('td',{class:'mute'},u.tag),el('td',{},num(u.trophies)),el('td',{class:'gem'},num(u.gems)),el('td',{class:'gold'},num(u.gold)),el('td',{},badge(u)))))));
+}
+
+/* ---------- users ---------- */
+async function vUsers(m){
+  const S={q:'',filter:'all',sort:'id'};
+  const box=el('div'),info=el('span',{class:'mute'});
+  const load=async()=>{
+    const r=await api('GET',`/api/users?q=${encodeURIComponent(S.q)}&filter=${S.filter}&sort=${S.sort}`);if(cur!=='users')return;
+    info.textContent=`전체 ${num(r.data.total)}명 중 ${num(r.data.matched)}명${r.data.matched>200?' (상위 200명 표시)':''}`;
+    box.replaceChildren(userTable(r.data.users,'조건에 맞는 유저가 없습니다.'));
+  };
+  let t;const q=el('input',{placeholder:'닉네임 / 태그(#XXXX) / ID 검색',style:'width:260px'});
+  q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(()=>{S.q=q.value;load()},250)});
+  const seg=el('div',{class:'seg'});
+  [['all','전체'],['online','접속 중'],['banned','정지']].forEach(([k,l])=>seg.append(el('button',{class:k===S.filter?'on':'',onclick:e=>{S.filter=k;[...seg.children].forEach(b=>b.classList.remove('on'));e.target.classList.add('on');load()}},l)));
+  m.replaceChildren(el('h2',{},'유저 관리'),el('div',{class:'row',style:'margin-bottom:12px'},q,seg,sel([['id','가입순'],['trophies','트로피순'],['recent','최근 접속순']],'id',v=>{S.sort=v;load()}),el('button',{onclick:load},'새로고침'),info),box);
+  await load();
+}
+async function openUser(id){
+  const m=modal(el('div',{class:'mute'},'불러오는 중...'));
+  let refresh=true;
+  const render=async()=>{
+    const r=await api('GET','/api/user?id='+id);
+    if(!r.data.ok){m.box.replaceChildren(el('p',{},r.data.message||'오류'),el('button',{onclick:m.close},'닫기'));return}
+    const u=r.data.user,mails=r.data.mails;
+    const run=async(path,body,msg)=>{const x=await act(path,body);if(x.ok)await render();return x};
+
+    // currency
+    const MONEY=[['gems','젬','gem',[10,100,1000]],['gold','골드','gold',[100,1000,10000]],['power','파워 포인트','',[100,1000,10000]]];
+    const cur2={gems:u.gems,gold:u.gold,power:u.powerPoints};
+    const moneyRows=MONEY.map(([key,label,cls,steps])=>{
+      const inp=el('input',{type:'number',min:0,placeholder:'값'});
+      return el('div',{class:'money'},el('div',{},el('div',{class:'mute'},label),el('div',{class:'v '+cls},num(cur2[key]))),
+        el('div',{class:'row'},
+          steps.slice().reverse().map(s=>el('button',{onclick:()=>run('/api/user/resource',{id,resource:key,mode:'add',amount:-s,refresh})},'-'+num(s))),
+          steps.map(s=>el('button',{onclick:()=>run('/api/user/resource',{id,resource:key,mode:'add',amount:s,refresh})},'+'+num(s))),
+          inp,el('button',{onclick:()=>{if(inp.value==='')return toast('값을 입력하세요',true);run('/api/user/resource',{id,resource:key,mode:'set',amount:+inp.value,refresh})}},'설정'),
+          el('button',{class:'ghost',onclick:()=>run('/api/user/resource',{id,resource:key,mode:'set',amount:0,refresh})},'0으로')));
+    });
+    const tro=el('input',{type:'number',min:0,value:u.trophies});
+    const nick=el('input',{value:u.name,maxlength:15,style:'width:220px'});
+
+    // ban
+    let hours=24;const reasonSel=sel([['','사유 선택(선택사항)'],['부정 행위','부정 행위'],['욕설/비매너','욕설/비매너'],['계정 도용/거래','계정 도용/거래'],['버그 악용','버그 악용'],['기타','기타']],'');
+    const hourChips=el('div');
+    const drawChips=()=>hourChips.replaceChildren(...[[1,'1시간'],[6,'6시간'],[24,'1일'],[72,'3일'],[168,'7일'],[720,'30일']].map(([h,l])=>el('span',{class:'chip'+(h===hours?' on':''),onclick:()=>{hours=h;drawChips()}},l)));drawChips();
+    const banBox=u.banType?el('div',{},
+        el('p',{},u.banType===2?'영구 정지된 계정입니다.':'일시 정지 중 · 해제: '+when(u.banEnd),u.banReason?` · 사유: ${u.banReason}`:''),
+        el('button',{class:'pri',onclick:()=>run('/api/user/unban',{id})},'정지 해제'))
+      :el('div',{},el('div',{class:'mute',style:'margin-bottom:4px'},'일시 정지 기간'),hourChips,el('div',{class:'row',style:'margin-top:8px'},reasonSel,
+        el('button',{class:'bad',onclick:async()=>{if(await confirmBox('일시 정지',`${u.name} 님을 정지할까요?`,true))run('/api/user/ban',{id,type:1,hours,reason:reasonSel.value})}},'일시 정지'),
+        el('button',{class:'bad',onclick:async()=>{if(await confirmBox('영구 정지',`${u.name} 님을 영구 정지합니다. 해제 전까지 접속할 수 없습니다.`,true))run('/api/user/ban',{id,type:2,hours:0,reason:reasonSel.value})}},'영구 정지')));
+
+    m.box.replaceChildren(
+      el('div',{class:'row sp'},el('div',{},el('h2',{},u.name||'(이름 없음)'),el('div',{class:'mute'},`${u.tag} · ID ${u.id} · 트로피 ${num(u.trophies)} (최고 ${num(u.maxTrophies)})`)),el('div',{class:'row'},badge(u),el('button',{onclick:m.close},'닫기'))),
+      el('div',{class:'mute',style:'margin-top:6px'},`가입 ${u.created||'-'} · 마지막 접속 ${u.online?'지금':ago(u.lastOnline)} · 플레이 ${dur(u.playTime)} · 접속 ${num(u.sessions)}회`),
+      el('div',{class:'sec'},el('h3',{},'재화'),moneyRows,el('div',{style:'margin-top:8px'},check('접속 중이면 즉시 반영(홈 화면 새로고침)',refresh,v=>refresh=v))),
+      el('div',{class:'sec'},el('h3',{},'트로피'),el('div',{class:'row'},[-100,-10,10,100].map(s=>el('button',{onclick:()=>{tro.value=Math.max(0,+tro.value+s)}},(s>0?'+':'')+s)),tro,el('button',{class:'pri',onclick:()=>run('/api/user/trophies',{id,trophies:+tro.value,refresh})},'적용'))),
+      el('div',{class:'sec'},el('h3',{},'닉네임'),el('div',{class:'row'},nick,el('button',{class:'pri',onclick:()=>run('/api/user/rename',{id,name:nick.value})},'변경'),el('button',{onclick:()=>{nick.value='Brawler'}},'기본 닉네임'))),
+      el('div',{class:'sec'},el('h3',{},'제재'),banBox,u.online?el('div',{style:'margin-top:10px'},el('button',{onclick:()=>run('/api/user/kick',{id})},'접속 종료(킥)')):null),
+      el('div',{class:'sec'},el('div',{class:'row sp'},el('h3',{style:'margin:0'},'받은 우편 (최근)'),el('button',{onclick:()=>{m.close();go('mail',u)}},'✉️ 이 유저에게 우편 보내기')),
+        mails.length?el('div',{style:'margin-top:8px'},mails.slice(0,5).map(x=>el('div',{class:'mute',style:'padding:4px 0'},`[${when(x.time)}] ${x.text}`))):el('div',{class:'mute',style:'margin-top:6px'},'우편이 없습니다.')));
+  };
+  await render();
+}
+
+/* ---------- events ---------- */
+const CATS=['','트로피 이벤트','특별 이벤트','챌린지','파워 리그','클럽 리그','기타'];
+const ROT=[[0,'서버 기본값'],[30,'30초 (테스트)'],[600,'10분'],[1800,'30분'],[3600,'1시간'],[10800,'3시간'],[21600,'6시간'],[43200,'12시간'],[86400,'24시간']];
+async function vEvents(m){
+  const [cat,r]=await Promise.all([catalog(),api('GET','/api/events')]);if(cur!=='events')return;
+  const ev=r.data;const st={rotate:ev.config.rotate_seconds||0,slots:ev.config.slots.map(s=>({slot:s.slot,category:s.category||'',game_modes:[...s.game_modes],locations:[...s.locations],enabled:s.enabled!==false}))};
+  const locName=id=>{const l=cat.locations.find(x=>x.id===id);return l?l.map:'#'+id};
+  const draw=()=>{
+    const used=new Set(st.slots.map(s=>s.slot));
+    const cards=st.slots.sort((a,b)=>a.slot-b.slot).map(s=>{
+      const free=cat.slots.filter(n=>!used.has(n)||n===s.slot);
+      const showAll=!!s._all;
+      const maps=cat.locations.filter(l=>(s.game_modes.length?s.game_modes.includes(l.mode):true)&&(showAll||!l.disabled));
+      const mapPanel=el('details',{open:s.locations.length>0},el('summary',{style:'cursor:pointer;margin-top:10px'},`맵 고정 (${s.locations.length?s.locations.length+'개 선택 – 선택한 맵만 사용':'선택 안 함 – 종류 안에서 자동 랜덤'})`),
+        el('div',{class:'row',style:'margin-top:6px'},check('비활성(미지원 가능) 맵도 보기',showAll,v=>{s._all=v;draw()}),s.locations.length?el('button',{onclick:()=>{s.locations=[];draw()}},'선택 해제'):null),
+        el('div',{class:'mapbox'},maps.length?maps.map(l=>el('label',{},(()=>{const c=el('input',{type:'checkbox'});c.checked=s.locations.includes(l.id);c.addEventListener('change',()=>{s.locations=c.checked?[...s.locations,l.id]:s.locations.filter(x=>x!==l.id);draw()});return c})(),` ${l.map} `,el('span',{class:'mute'},modeKo(l.mode)+(l.disabled?' · 비활성':'')))):el('span',{class:'mute'},'맵이 없습니다.')));
+      return el('div',{class:'slot'+(s.enabled?'':' dis')},
+        el('div',{class:'row sp'},el('div',{class:'row'},el('b',{},'슬롯'),sel(free.map(n=>[n,n]),s.slot,v=>{s.slot=+v;draw()}),sel(CATS.map(c=>[c,c||'카테고리 없음']),CATS.includes(s.category)?s.category:'',v=>{s.category=v})),
+          el('div',{class:'row'},check('사용',s.enabled,v=>{s.enabled=v;draw()}),el('button',{class:'bad',onclick:()=>{st.slots=st.slots.filter(x=>x!==s);draw()}},'삭제'))),
+        el('div',{class:'mute',style:'margin:10px 0 4px;font-size:12px'},'이벤트 종류 (여러 개 선택하면 교체 때마다 랜덤) · 괄호 = 사용 가능 맵 수'),
+        el('div',{},cat.modes.map(md=>el('span',{class:'chip'+(s.game_modes.includes(md.id)?' on':'')+(md.enabled?'':' off'),title:md.enabled?'':'기본 비활성 모드: 맵 고정으로만 사용 가능',onclick:()=>{s.game_modes=s.game_modes.includes(md.id)?s.game_modes.filter(x=>x!==md.id):[...s.game_modes,md.id];draw()}},`${modeKo(md.id)} (${md.enabled})`))),mapPanel);
+    });
+    const left=cat.slots.filter(n=>!used.has(n));
+    m.replaceChildren(el('h2',{},'이벤트 관리'),
+      el('div',{class:'card'},el('div',{class:'row sp'},el('div',{},el('b',{},'지금 진행 중'),el('div',{class:'mute'},`다음 교체까지 ${dur(ev.nextRotateIn)} · 교체 주기 ${dur(ev.intervalSeconds)}`)),
+        el('button',{onclick:async()=>{await act('/api/events/reroll',{});go('events')}},'🔀 지금 맵 새로 뽑기')),
+        ev.current.length?el('div',{class:'tw',style:'margin-top:8px'},el('table',{},el('tbody',{},ev.current.map(e=>el('tr',{},el('td',{},'슬롯 '+e.slot),el('td',{},modeKo(e.mode)),el('td',{},e.map),el('td',{class:'mute'},dur(e.endsIn))))))):el('div',{class:'mute',style:'margin-top:8px'},'진행 중인 이벤트 없음')),
+      el('div',{class:'row',style:'margin:14px 0'},el('b',{},'교체 주기'),sel(ROT.concat(ROT.some(x=>x[0]===st.rotate)?[]:[[st.rotate,dur(st.rotate)]]),st.rotate,v=>{st.rotate=+v})),
+      cards,
+      el('div',{class:'row'},el('button',{disabled:!left.length,onclick:()=>{st.slots.push({slot:left[0],category:'',game_modes:[],locations:[],enabled:true});draw()}},'➕ 슬롯 추가'),el('span',{class:'mute'},left.length?'':'모든 슬롯을 사용 중입니다.')),
+      el('div',{class:'save'},el('button',{class:'pri',onclick:async()=>{const x=await act('/api/events/save',{rotate_seconds:st.rotate,slots:st.slots.map(s=>({slot:s.slot,category:s.category,game_modes:s.game_modes,locations:s.locations,enabled:s.enabled}))});if(x.ok)go('events')}},'💾 저장하고 바로 적용'),el('span',{class:'mute'},'접속 중인 유저에게도 즉시 전송됩니다.')));
+  };
+  draw();
+}
+
+/* ---------- shop ---------- */
+const ITEMS=[[1,'골드'],[16,'젬'],[6,'브롤 박스'],[14,'빅 박스'],[10,'메가 박스'],[8,'파워 포인트'],[17,'스타 포인트'],[28,'브롤 패스 토큰'],[7,'티켓'],[9,'코인 두 배'],[3,'브롤러'],[4,'스킨']];
+const PRICE=[[0,'젬'],[1,'골드'],[3,'스타 포인트']];
+const DUR=[[0,'무제한'],[24,'1일'],[72,'3일'],[168,'7일'],[336,'14일'],[720,'30일']];
+const itemName=(it,cat)=>{if(it.Type===3){const b=cat.brawlers.find(x=>x.id===it.BrawlerId);return '브롤러: '+(b?b.name:'#'+it.BrawlerId)}if(it.Type===4){const s=cat.skins.find(x=>x.id===it.SkinId);return '스킨: '+(s?s.name:'#'+it.SkinId)}return `${(ITEMS.find(x=>x[0]===it.Type)||[0,'?'])[1]} ×${num(it.Count)}`};
+async function vShop(m){
+  const [cat,r]=await Promise.all([catalog(),api('GET','/api/shop')]);if(cur!=='shop')return;
+  const offers=r.data;
+  const row=o=>{
+    const left=o.DurationHours>0?(o.StartTime+o.DurationHours*3600-Date.now()/1000):null;
+    return el('tr',{},el('td',{},el('b',{},o.Title),el('div',{class:'mute'},o.Items.map(i=>itemName(i,cat)).join(' + '))),
+      el('td',{},`${(PRICE.find(x=>x[0]===o.PriceType)||[0,'?'])[1]} ${num(o.Price)}`,o.OldPrice>o.Price?el('span',{class:'mute'},` (정가 ${num(o.OldPrice)})`):null),
+      el('td',{class:'mute'},left===null?'무제한':left>0?dur(left)+' 남음':'기간 종료'),
+      el('td',{},o.Daily?'일일':'일반'),
+      el('td',{},o.Enabled&&(left===null||left>0)?el('span',{class:'badge b-on'},'판매 중'):el('span',{class:'badge b-off'},o.Enabled?'종료':'숨김')),
+      el('td',{},el('div',{class:'row'},el('button',{onclick:()=>editOffer(o)},'수정'),el('button',{onclick:async()=>{const x=await act('/api/shop/save',{offer:{...o,Enabled:!o.Enabled}});if(x.ok)go('shop')}},o.Enabled?'숨기기':'켜기'),
+        el('button',{class:'bad',onclick:async()=>{if(await confirmBox('상품 삭제',`'${o.Title}' 상품을 삭제할까요?`,true)){const x=await act('/api/shop/delete',{id:o.Id});if(x.ok)go('shop')}}},'삭제'))));
+  };
+  m.replaceChildren(el('div',{class:'row sp'},el('h2',{},'상점 품목 관리'),el('button',{class:'pri',onclick:()=>editOffer(null)},'➕ 상품 추가')),
+    el('div',{class:'hint',style:'margin:-8px 0 12px'},'등록한 상품은 모든 유저의 상점에 표시됩니다. (현재 서버에는 구매 처리 로직이 없어, 표시만 되고 실제 구매는 처리되지 않습니다.)'),
+    offers.length?el('div',{class:'card tw'},el('table',{},el('thead',{},el('tr',{},['상품','가격','남은 기간','구분','상태',''].map(x=>el('th',{},x)))),el('tbody',{},offers.map(row)))):el('div',{class:'card mute'},'등록된 상품이 없습니다. “상품 추가”를 눌러 만들어 보세요.'));
+  function editOffer(old){
+    const o=old?JSON.parse(JSON.stringify(old)):{Id:0,Title:'',Enabled:true,PriceType:0,Price:30,OldPrice:0,DurationHours:0,Daily:false,Confirm:true,Items:[{Type:16,Count:80,BrawlerId:0,SkinId:0}]};
+    let restart=false,push=false;
+    const mm=modal(el('div'));
+    const draw=()=>{
+      const itemRows=o.Items.map((it,idx)=>{
+        const isH=it.Type===3,isS=it.Type===4;
+        const typeSel=sel(ITEMS,it.Type,v=>{it.Type=+v;draw()});
+        let extra;
+        if(isH||isS){
+          const list=isH?cat.brawlers:cat.skins,key=isH?'BrawlerId':'SkinId';
+          const flt=el('input',{placeholder:'이름 검색',style:'width:130px'});
+          const s=el('select',{style:'min-width:170px'});const fill=()=>{const q=flt.value.toLowerCase();s.replaceChildren(...list.filter(x=>x.id===it[key]||x.name.toLowerCase().includes(q)).slice(0,300).map(x=>el('option',{value:x.id},x.name)));s.value=it[key]};
+          flt.addEventListener('input',fill);s.addEventListener('change',()=>{it[key]=+s.value});fill();extra=[flt,s];
+        }else{
+          const c=el('input',{type:'number',min:1,value:it.Count});c.addEventListener('input',()=>{it.Count=+c.value||1});
+          extra=[c,...[10,100,1000].map(n=>el('button',{onclick:()=>{it.Count=n;draw()}},num(n)))];
+        }
+        return el('div',{class:'itemrow'},typeSel,extra,o.Items.length>1?el('button',{class:'ghost',onclick:()=>{o.Items.splice(idx,1);draw()}},'✕'):null);
+      });
+      const title=el('input',{value:o.Title,placeholder:'비워두면 구성품 이름으로 자동 생성',style:'width:100%',maxlength:40});title.addEventListener('input',()=>{o.Title=title.value});
+      const price=el('input',{type:'number',min:1,value:o.Price});price.addEventListener('input',()=>{o.Price=+price.value||1});
+      const oldp=el('input',{type:'number',min:0,value:o.OldPrice||'',placeholder:'= 가격'});oldp.addEventListener('input',()=>{o.OldPrice=+oldp.value||0});
+      mm.box.replaceChildren(el('h2',{},old?'상품 수정':'상품 추가'),
+        field('상품 이름',title),
+        el('div',{class:'sec'},el('h3',{},'구성품'),itemRows,el('button',{disabled:o.Items.length>=6,onclick:()=>{o.Items.push({Type:1,Count:100,BrawlerId:0,SkinId:0});draw()}},'➕ 구성품 추가')),
+        el('div',{class:'sec'},el('h3',{},'가격'),el('div',{class:'row'},sel(PRICE,o.PriceType,v=>{o.PriceType=+v}),price,[10,30,80,170,500].map(n=>el('button',{onclick:()=>{o.Price=n;draw()}},num(n))),el('span',{class:'mute'},'정가(할인 전)'),oldp)),
+        el('div',{class:'sec'},el('h3',{},'판매 설정'),el('div',{class:'row'},el('span',{},'판매 기간'),sel(DUR.concat(DUR.some(x=>x[0]===o.DurationHours)?[]:[[o.DurationHours,o.DurationHours+'시간']]),o.DurationHours,v=>{o.DurationHours=+v}),
+          check('일일 상점에 표시',o.Daily,v=>o.Daily=v),check('구매 확인창',o.Confirm,v=>o.Confirm=v),check('판매 중',o.Enabled,v=>o.Enabled=v)),
+          el('div',{class:'row',style:'margin-top:8px'},old?check('판매 기간 다시 시작',false,v=>restart=v):null,check('접속 중인 유저에게 즉시 반영',false,v=>push=v))),
+        el('div',{class:'row',style:'justify-content:flex-end;margin-top:16px'},el('button',{onclick:mm.close},'취소'),el('button',{class:'pri',onclick:async()=>{
+          if(!o.Title.trim())o.Title=o.Items.map(i=>itemName(i,cat)).join(' + ').slice(0,40);
+          const x=await act('/api/shop/save',{offer:o,restart,push});if(x.ok){mm.close();go('shop')}}},'저장')));
+    };
+    draw();
+  }
+}
+
+/* ---------- mail ---------- */
+const TPL=[['점검 안내','서버 점검이 예정되어 있습니다. 진행 중인 게임을 마무리해 주세요.'],['보상 안내','이벤트 보상이 지급되었습니다. 즐거운 플레이 되세요!'],['사과 및 보상','이용에 불편을 드려 죄송합니다. 소정의 보상을 드립니다.'],['환영','환영합니다! 즐거운 플레이 되세요.']];
+async function vMail(m,presel){
+  let mode=presel?'one':'all',target=presel||null,refresh=true;
+  const text=el('textarea',{maxlength:500,placeholder:'보낼 내용을 입력하거나 아래 문구를 눌러 불러오세요.'});
+  const count=el('span',{class:'mute'},'0/500');text.addEventListener('input',()=>{count.textContent=text.value.length+'/500'});
+  let gems=0,gold=0;
+  const targetBox=el('div'),rewardBox=el('div');
+  const drawTarget=()=>{
+    targetBox.replaceChildren();if(mode==='all'){targetBox.append(el('div',{class:'hint'},'가입된 모든 유저의 수신함으로 전송됩니다.'));return}
+    const list=el('div',{class:'pick'}),q=el('input',{placeholder:'닉네임 / 태그 / ID 로 검색',style:'width:260px'});
+    const chosen=el('div',{style:'margin-bottom:6px'},target?el('span',{class:'chip on'},`${target.name} (${target.tag})`):el('span',{class:'mute'},'받는 유저를 선택하세요'));
+    let t;const search=async()=>{const r=await api('GET','/api/users?q='+encodeURIComponent(q.value)+'&sort=recent');list.replaceChildren(...r.data.users.slice(0,30).map(u=>el('div',{onclick:()=>{target=u;drawTarget()}},`${u.name||'(이름 없음)'} `,el('span',{class:'mute'},`${u.tag} · 트로피 ${num(u.trophies)}`))))};
+    q.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(search,250)});
+    targetBox.append(chosen,q,list);search();
+  };
+  const drawReward=()=>{
+    const chips=(cur,set)=>[0,10,100,500,1000].map(n=>el('span',{class:'chip'+(cur===n?' on':''),onclick:()=>{set(n);drawReward()}},n?num(n):'없음'));
+    rewardBox.replaceChildren(el('div',{class:'row'},el('span',{class:'gem'},'젬 보상'),chips(gems,n=>gems=n)),el('div',{class:'row'},el('span',{class:'gold'},'골드 보상'),chips(gold,n=>gold=n),),
+      el('div',{class:'hint'},'선택하면 우편 발송과 함께 재화가 바로 지급됩니다.'),el('div',{style:'margin-top:6px'},check('접속 중인 유저는 즉시 반영(홈 새로고침)',refresh,v=>refresh=v)));
+  };
+  const seg=el('div',{class:'seg'});
+  [['one','개인 우편'],['all','전체 우편']].forEach(([k,l])=>seg.append(el('button',{class:k===mode?'on':'',onclick:e=>{mode=k;[...seg.children].forEach(b=>b.classList.remove('on'));e.target.classList.add('on');drawTarget()}},l)));
+  m.replaceChildren(el('h2',{},'우편 보내기'),el('div',{class:'card'},seg,el('div',{style:'margin-top:12px'},targetBox),
+    el('div',{class:'sec'},el('div',{class:'mute',style:'margin-bottom:6px'},'자주 쓰는 문구'),TPL.map(([l,t])=>el('span',{class:'chip',onclick:()=>{text.value=t;count.textContent=t.length+'/500'}},l)),text,el('div',{style:'text-align:right'},count)),
+    el('div',{class:'sec'},rewardBox),
+    el('div',{class:'row',style:'justify-content:flex-end;margin-top:14px'},el('button',{class:'pri',onclick:async()=>{
+      if(mode==='one'&&!target)return toast('받는 유저를 선택하세요',true);
+      if(mode==='all'&&!await confirmBox('전체 우편',`모든 유저에게 우편을 보냅니다.${gems||gold?` (젬 ${num(gems)} / 골드 ${num(gold)} 지급 포함)`:''}`))return;
+      const x=await act('/api/mail',{target:mode==='all'?'all':String(target.id),text:text.value,gems,gold,refresh});if(x.ok){text.value='';count.textContent='0/500'}}},'✉️ 보내기'))));
+  drawTarget();drawReward();
+}
+
+/* ---------- log ---------- */
+async function vLog(m){
+  const r=await api('GET','/api/audit');if(cur!=='log')return;
+  m.replaceChildren(el('div',{class:'row sp'},el('h2',{},'작업 기록'),el('button',{onclick:()=>go('log')},'새로고침')),
+    el('div',{class:'card tw'},r.data.lines.length?el('table',{},el('thead',{},el('tr',{},['시각','접속 IP','작업','내용'].map(x=>el('th',{},x)))),el('tbody',{},r.data.lines.map(l=>{const p=l.split('\t');return el('tr',{},el('td',{class:'mute'},p[0]),el('td',{class:'mute'},p[1]),el('td',{},p[2]),el('td',{style:'white-space:normal;word-break:break-all'},p[3]||''))}))):el('div',{class:'mute'},'기록이 없습니다.')));
+}
+
+(async()=>{try{await api('GET','/api/me');boot()}catch(e){if(e.message!=='auth')showLogin()}})();
+</script>
+</body>
+</html>

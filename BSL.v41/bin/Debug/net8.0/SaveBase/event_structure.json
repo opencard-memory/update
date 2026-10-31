@@ -1,0 +1,14 @@
+{
+  "rotate_seconds": 0,
+  "slots": [
+    {
+      "slot": 1,
+      "category": "",
+      "game_modes": [
+        "Bounty"
+      ],
+      "locations": [],
+      "enabled": true
+    }
+  ]
+}
