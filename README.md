@@ -1,16 +1,18 @@
 # BSL.v41
-C# Brawl Stars server emulator for version 41.150 with online battles
+Based on the BSL.v41 project by LkPrtctrd, this project is still a work in progress; I recommend not using it until I update this post.
+My goal is to achieve a level of implementation comparable to that of Null's Brawl.
+This project was originally based on .NET 8.0, but I upgraded it to .NET 10.0.
 
 ## How to play: ##
 
 ### Server ###
-Based on [VeloBrawl](https://github.com/XidMods05/brawl-stars-v36-private-server)
+Based on [BSL-v41 for LkPrtctrd](https://github.com/LkPrtctrd/BSL.v41)
 
-1: Download the server and extract it: [Click](https://github.com/LkPrtctrd/BSL-V41/archive/refs/heads/master.zip)
+1: git clone the server and extract it
 
 2: Open terminal on your computer and go to server directory
 
-3: Install .NET 8.0.X and type "cd BSL.v41 && dotnet run" (or use programs like visual studio)
+3: Install .NET 10.0.x and type "cd BSL.v41 && dotnet run" (or use programs like visual studio)
 
 4: Drink tea
 
@@ -25,6 +27,4 @@ Based on [VeloBrawl](https://github.com/XidMods05/brawl-stars-v36-private-server
 
 3: Enjoy playing BSL.v41!
 
-## Screenshots ##
-![BSL.v41](https://raw.githubusercontent.com/LkPrtctrd/BSL-V41/main/Screenshots/menu.png)
-![BSL.v41](https://raw.githubusercontent.com/LkPrtctrd/BSL-V41/main/Screenshots/battle.png)
+
