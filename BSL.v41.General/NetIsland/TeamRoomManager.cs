@@ -137,6 +137,17 @@ public static class TeamRoomManager
         }
     }
 
+    public static IReadOnlyList<ServerConnection> GetMembers(long accountId)
+    {
+        lock (Sync)
+        {
+            if (!PlayerRooms.TryGetValue(accountId, out var roomId) ||
+                !Rooms.TryGetValue(roomId, out var room))
+                return Array.Empty<ServerConnection>();
+            return room.Members.Select(member => member.Connection).ToArray();
+        }
+    }
+
     public static bool IsInRoom(long accountId)
     {
         lock (Sync) return PlayerRooms.ContainsKey(accountId);
