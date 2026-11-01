@@ -41,6 +41,8 @@ public class AccountModel(string jsonAccountModel = null!)
     [JsonProperty] private string? _supportedCreator; // private. Not use!
     [JsonProperty] private int _trophies; // private. Not use!
     [JsonProperty] private HashSet<long> _friendIds = new(); // persistent friend relationships
+    [JsonProperty] private bool _invitesBlocked;
+    [JsonProperty] private bool _teamChatMuted;
     [JsonProperty] private int _trophyRoadProgress; // private. Not use!
     [JsonProperty] private bool _userIsAuthed; // private. Not use!
 
@@ -130,6 +132,25 @@ public class AccountModel(string jsonAccountModel = null!)
         var removed = _friendIds.Remove(accountId);
         if (removed) Persist();
         return removed;
+    }
+
+
+    public bool IsInvitesBlocked() => _invitesBlocked;
+
+    public void SetInvitesBlocked(bool blocked)
+    {
+        if (_invitesBlocked == blocked) return;
+        _invitesBlocked = blocked;
+        Persist();
+    }
+
+    public bool IsTeamChatMuted() => _teamChatMuted;
+
+    public void SetTeamChatMuted(bool muted)
+    {
+        if (_teamChatMuted == muted) return;
+        _teamChatMuted = muted;
+        Persist();
     }
 
     public void Persist()
