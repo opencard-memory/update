@@ -11,6 +11,7 @@ using BSL.v41.Logic.Environment.LaserCommand.Laser;
 using BSL.v41.Logic.Environment.LaserListener;
 using BSL.v41.Logic.Environment.LaserMessage;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_1;
+using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_10;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_11;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_27;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_4;
@@ -61,6 +62,7 @@ public class MessageManager(
             return LogicTimeUtil.GetTimestamp() - _lastKeepAliveReceivedTime < 6 * 5;
 
         IdentifierListener.RemoveLogicGameListenerByAccountId(serverConnection!.GetAccountModel().GetAccountId());
+        TeamRoomManager.Leave(serverConnection!);
 
         Saver.OwnMatchmakingManager.MatchmakingManagers[_playerGeoEventSlot]
             .RemovePlayerFromMassive(serverConnection!.GetAccountModel().GetAccountId(), true);
@@ -114,6 +116,7 @@ public class MessageManager(
             10101 => LoginMessageReceived((LoginMessage)piranhaMessage),
             10108 => KeepAliveMessageReceived((KeepAliveMessage)piranhaMessage),
             14103 => MatchmakeRequestMessageReceived((MatchmakeRequestMessage)piranhaMessage),
+            14199 => LookForGameRoomRequestMessageReceived((LookForGameRoomRequestMessage)piranhaMessage),
             10177 => ClientInfoMessageReceived((ClientInfoMessage)piranhaMessage),
             10111 => AccountIdentifiersMessageReceived((AccountIdentifiersMessage)piranhaMessage),
             10107 => ClientCapabilitiesMessageReceived((ClientCapabilitiesMessage)piranhaMessage),
@@ -125,11 +128,40 @@ public class MessageManager(
             14101 => GoHomeMessageReceived((GoHomeMessage)piranhaMessage),
             14366 => PlayerStatusMessageReceived((PlayerStatusMessage)piranhaMessage),
             10555 => ClientInputMessageReceived((ClientInputMessage)piranhaMessage),
+            10502 => AddFriendMessageReceived((AddFriendMessage)piranhaMessage),
+            10501 => AcceptFriendMessageReceived((AcceptFriendMessage)piranhaMessage),
+            10506 => RemoveFriendMessageReceived((RemoveFriendMessage)piranhaMessage),
+            10504 => SendFriendList(),
+            14350 => TeamCreateMessageReceived((TeamCreateMessage)piranhaMessage),
+            14351 => TeamJoinMessageReceived((TeamJoinMessage)piranhaMessage),
+            14352 => TeamKickMessageReceived((TeamKickMessage)piranhaMessage),
+            14359 => TeamChatMessageReceived((TeamChatMessage)piranhaMessage),
+            14777 => SetInvitesBlockedMessageReceived((SetInvitesBlockedMessage)piranhaMessage),
+            14778 => SetTeamChatMutedMessageReceived((SetTeamChatMutedMessage)piranhaMessage),
+            14880 => TeamRequestJoinCancelMessageReceived(),
+            14881 => TeamRequestJoinMessageReceived((TeamRequestJoinMessage)piranhaMessage),
+            14882 => TeamRequestJoinApproveMessageReceived((TeamRequestJoinApproveMessage)piranhaMessage),
+            14353 => TeamLeaveMessageReceived(),
+            14355 => TeamSetMemberReadyMessageReceived(),
+            14365 => TeamInviteMessageReceived((TeamInviteMessage)piranhaMessage),
+            14479 => TeamInvitationResponseMessageReceived((TeamInvitationResponseMessage)piranhaMessage),
             10212 => ChangeAvatarNameMessageReceived((ChangeAvatarNameMessage)piranhaMessage),
+            14303 => SendJoinableAlliancesList(),
+            14304 => 0,
+            14305 => JoinAllianceMessageReceived((JoinAllianceMessage)piranhaMessage),
+            14306 => ChangeAllianceMemberRoleMessageReceived((ChangeAllianceMemberRoleMessage)piranhaMessage),
+            14307 => KickAllianceMemberMessageReceived((KickAllianceMemberMessage)piranhaMessage),
+            14315 => ChatToAllianceStreamMessageReceived((ChatToAllianceStreamMessage)piranhaMessage),
+            14317 => RequestJoinAllianceMessageReceived((RequestJoinAllianceMessage)piranhaMessage),
+            14321 => RespondToAllianceJoinRequestMessageReceived((RespondToAllianceJoinRequestMessage)piranhaMessage),
+            14322 => SendAllianceInvitationMessageReceived((SendAllianceInvitationMessage)piranhaMessage),
+            14323 => JoinAllianceUsingInvitationMessageReceived((JoinAllianceUsingInvitationMessage)piranhaMessage),
+            14324 => SearchAlliancesMessageReceived((SearchAlliancesMessage)piranhaMessage),
+            14326 => SendAllianceInvitationToFriendMessageReceived((SendAllianceInvitationToFriendMessage)piranhaMessage),
             14301 => CreateAllianceMessageReceived((CreateAllianceMessage)piranhaMessage),
             14302 => AskForAllianceDataMessageReceived((AskForAllianceDataMessage)piranhaMessage),
             14316 => ChangeAllianceSettingsMessageReceived((ChangeAllianceSettingsMessage)piranhaMessage),
-            14308 => LeaveAllianceMessageReceived((LeaveAllianceMessage)piranhaMessage),
+            14308 => LeaveAllianceMessageReceived((BSL.v41.Logic.Environment.LaserMessage.Laser.Node_11.LeaveAllianceMessage)piranhaMessage),
             30000 => AttributionMessageReceived((AttributionMessage)piranhaMessage),
             14118 => SinglePlayerMatchRequestMessageReceived((SinglePlayerMatchRequestMessage)piranhaMessage),
             _ => 0
@@ -251,77 +283,18 @@ public class MessageManager(
         return 1;
     }
 
-    private int LeaveAllianceMessageReceived(LeaveAllianceMessage piranhaMessage)
-    {
-        AllianceResponseMessage? allianceResponseMessage;
-
-        var v1 = (long)serverConnection!.GetAccountModel()
-            .GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AllianceId);
-
-        if (v1 < 1)
-        {
-            allianceResponseMessage = new AllianceResponseMessage();
-            {
-                allianceResponseMessage.IsResponse(94);
-            }
-
-            SendMessage(allianceResponseMessage);
-            return 0;
-        }
-
-        var v2 = Databases.AllianceDatabase.LoadAlliance(v1);
-        {
-            var d1 =
-                (Dictionary<long, AllianceMemberEntry>)v2.GetFieldValueByAllianceStructureParameterFromAllianceModel(
-                    AllianceStructure.AllianceMemberEntryList);
-            {
-                d1.Remove(serverConnection!.GetAccountModel().GetAccountId());
-            }
-
-            v2.SetFieldValueByAllianceStructureParameterFromAllianceModel(AllianceStructure.AllianceMemberEntryList,
-                d1);
-        }
-
-        serverConnection.GetAccountModel()
-            .SetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AllianceId, (long)0);
-
-        allianceResponseMessage = new AllianceResponseMessage();
-        {
-            allianceResponseMessage.IsResponse(80);
-        }
-
-        SendMessage(allianceResponseMessage);
-        SendMessage(new MyAllianceMessage());
-
-        var allianceModel = Databases.AllianceDatabase.LoadAlliance(97);
-        var allianceMemberEntry = new AllianceMemberEntry
-        {
-            AccountId = serverConnection.GetAccountModel().GetAccountId(),
-            AllianceRoleHelperTable = AllianceRoleHelperTable.Member
-        };
-
-        serverConnection!.GetAccountModel()
-            .SetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AllianceId,
-                allianceModel.GetAllianceId());
-        serverConnection.GetAccountModel()
-            .SetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AllianceMemberEntry,
-                allianceMemberEntry);
-
-        var c = (Dictionary<long, AllianceMemberEntry>)
-            allianceModel.GetFieldValueByAllianceStructureParameterFromAllianceModel(
-                AllianceStructure.AllianceMemberEntryList);
-        c.Add(serverConnection.GetAccountModel().GetAccountId(), allianceMemberEntry);
-
-        allianceModel.SetFieldValueByAllianceStructureParameterFromAllianceModel(
-            AllianceStructure.AllianceMemberEntryList, c);
-
-        ToSendAutomizeHelper.SendAllianceStatus(
-            Databases.AllianceDatabase.LoadAlliance(
-                Convert.ToInt64(serverConnection!.GetAccountModel()
-                    .GetFieldValueByAccountStructureParameterFromAccountModel(
-                        AccountStructure.AllianceId))), serverConnection!.GetAccountModel().GetAccountId());
-        return 1;
-    }
+    private int LeaveAllianceMessageReceived(BSL.v41.Logic.Environment.LaserMessage.Laser.Node_11.LeaveAllianceMessage piranhaMessage){ClubManager.Leave(serverConnection!);return 1;}
+    private int SendJoinableAlliancesList(){ClubManager.Joinable(serverConnection!);return 1;}
+    private int JoinAllianceMessageReceived(JoinAllianceMessage m){if(!ClubManager.Join(serverConnection!,m.AllianceId))ClubManager.RequestJoin(serverConnection!,m.AllianceId);return 1;}
+    private int KickAllianceMemberMessageReceived(KickAllianceMemberMessage m){ClubManager.Kick(serverConnection!,m.AccountId);return 1;}
+    private int ChangeAllianceMemberRoleMessageReceived(ChangeAllianceMemberRoleMessage m){ClubManager.ChangeRole(serverConnection!,m.AccountId,m.Role);return 1;}
+    private int ChatToAllianceStreamMessageReceived(ChatToAllianceStreamMessage m){ClubManager.Chat(serverConnection!,m.Message);return 1;}
+    private int RequestJoinAllianceMessageReceived(RequestJoinAllianceMessage m){ClubManager.RequestJoin(serverConnection!,m.AllianceId);return 1;}
+    private int RespondToAllianceJoinRequestMessageReceived(RespondToAllianceJoinRequestMessage m){ClubManager.Respond(serverConnection!,m.AccountId,m.Accept);return 1;}
+    private int SendAllianceInvitationMessageReceived(SendAllianceInvitationMessage m){ClubManager.Invite(serverConnection!,m.AccountId);return 1;}
+    private int SendAllianceInvitationToFriendMessageReceived(SendAllianceInvitationToFriendMessage m){ClubManager.Invite(serverConnection!,m.AccountId);return 1;}
+    private int JoinAllianceUsingInvitationMessageReceived(JoinAllianceUsingInvitationMessage m){ClubManager.Join(serverConnection!,m.AllianceId,true);return 1;}
+    private int SearchAlliancesMessageReceived(SearchAlliancesMessage m){ClubManager.Search(serverConnection!,m.SearchText);return 1;}
 
     private int ChangeAllianceSettingsMessageReceived(ChangeAllianceSettingsMessage piranhaMessage)
     {
@@ -670,14 +643,23 @@ public class MessageManager(
 
     private int CancelMatchmakingMessageReceived(CancelMatchmakingMessage piranhaMessage)
     {
-        SendMessage(new MatchMakingCancelledMessage());
-
+        if (TeamRoomManager.CancelPlayersSearch(serverConnection!))
+        {
+            SendMessage(new MatchMakingCancelledMessage());
+            return 1;
+        }
         if (_playerGeoEventSlot < 0) return 0;
 
-        Saver.OwnMatchmakingManager.MatchmakingManagers[_playerGeoEventSlot]
-            .RemovePlayerFromMassive(serverConnection!.GetAccountModel().GetAccountId());
+        var accountId = serverConnection!.GetAccountModel().GetAccountId();
+        var party = TeamRoomManager.GetMembers(accountId);
+        if (party.Count == 0) party = new[] { serverConnection! };
+
+        var matchmaker = Saver.OwnMatchmakingManager.MatchmakingManagers[_playerGeoEventSlot];
+        foreach (var member in party)
         {
-            _playerGeoEventSlot = -1;
+            try { member.GetMessaging()!.Send(new MatchMakingCancelledMessage()); } catch { }
+            matchmaker.RemovePlayerFromMassive(member.GetAccountModel().GetAccountId());
+            member.GetMessageManager()!._playerGeoEventSlot = -1;
         }
 
         return 1;
@@ -722,25 +704,183 @@ public class MessageManager(
         return 1;
     }
 
-    private int MatchmakeRequestMessageReceived(MatchmakeRequestMessage piranhaMessage)
+
+
+    private int TeamRequestJoinMessageReceived(TeamRequestJoinMessage message)
     {
-        var v1 = Saver.OwnMatchmakingManager.MatchmakingManagers[piranhaMessage.GetEventSlot()]
-            .AddPlayerToMassive(serverConnection!.GetAccountModel().GetAccountId(), serverConnection); 
+        var accountId = serverConnection!.GetAccountModel().GetAccountId();
+        if (message.GetPlayerId() != accountId || message.GetTeamId() < 1 || message.GetTeamId() > int.MaxValue)
+            return 0;
+        return TeamRoomManager.RequestJoin(serverConnection!, (int)message.GetTeamId()) ? 1 : 0;
+    }
+
+    private int TeamRequestJoinApproveMessageReceived(TeamRequestJoinApproveMessage message) =>
+        TeamRoomManager.ApproveJoin(serverConnection!, message.GetJoinerId(), message.GetState()) ? 1 : 0;
+
+    private int TeamRequestJoinCancelMessageReceived()
+    {
+        TeamRoomManager.CancelJoinRequest(serverConnection!);
+        return 1;
+    }
+
+    private int TeamKickMessageReceived(TeamKickMessage message) =>
+        TeamRoomManager.Kick(serverConnection!, message.GetTargetAccountId()) ? 1 : 0;
+
+    private int TeamChatMessageReceived(TeamChatMessage message) =>
+        TeamRoomManager.SendChat(serverConnection!, message.GetText()) ? 1 : 0;
+
+    private int SetInvitesBlockedMessageReceived(SetInvitesBlockedMessage message)
+    {
+        TeamRoomManager.SetInvitesBlocked(serverConnection!, message.GetBlocked());
+        return 1;
+    }
+
+    private int SetTeamChatMutedMessageReceived(SetTeamChatMutedMessage message)
+    {
+        TeamRoomManager.SetChatMuted(serverConnection!, message.GetMuted());
+        return 1;
+    }
+
+    private int TeamCreateMessageReceived(TeamCreateMessage message)
+    {
+        TeamRoomManager.Leave(serverConnection!);
+        return TeamRoomManager.Create(serverConnection!, message.GetRoomType(), message.GetMapId()) ? 1 : 0;
+    }
+
+    private int TeamJoinMessageReceived(TeamJoinMessage message)
+    {
+        return TeamRoomManager.Join(serverConnection!, message.GetRoomId()) ? 1 : 0;
+    }
+
+    private int TeamInviteMessageReceived(TeamInviteMessage message)
+    {
+        return TeamRoomManager.Invite(serverConnection!, message.GetTargetAccountId()) ? 1 : 0;
+    }
+
+    private int TeamInvitationResponseMessageReceived(TeamInvitationResponseMessage message)
+    {
+        if (message.GetResponse() == 1)
+            return TeamRoomManager.RespondToInvite(serverConnection!, Convert.ToInt32(message.GetRoomId()), true) ? 1 : 0;
+        if (message.GetResponse() == 2)
+            TeamRoomManager.RespondToInvite(serverConnection!, Convert.ToInt32(message.GetRoomId()), false);
+        return 1;
+    }
+
+    private int TeamSetMemberReadyMessageReceived()
+    {
+        TeamRoomManager.ToggleReady(serverConnection!);
+        return 1;
+    }
+
+    private int TeamLeaveMessageReceived()
+    {
+        TeamRoomManager.Leave(serverConnection!);
+        return 1;
+    }
+
+    private int SendFriendList()
+    {
+        var account = serverConnection!.GetAccountModel();
+        SendMessage(new FriendListMessage(account, account.GetFriendIds()));
+        return 1;
+    }
+
+    private int AddFriendMessageReceived(AddFriendMessage message)
+    {
+        return AddFriend(message.GetAvatarId());
+    }
+
+    private int AcceptFriendMessageReceived(AcceptFriendMessage message)
+    {
+        return AddFriend(message.GetAvatarId());
+    }
+
+    private int AddFriend(long friendId)
+    {
+        var account = serverConnection!.GetAccountModel();
+        if (friendId <= 0 || friendId == account.GetAccountId() ||
+            Databases.AccountDatabase.LoadAccount(friendId) == null!)
+            return 0;
+
+        account.AddFriend(friendId);
+        var friend = Databases.AccountDatabase.LoadAccount(friendId);
+        friend.AddFriend(account.GetAccountId());
+
+        SendFriendList();
+        if (IdentifierListener.GetV2LogicGameListenerByAccountId(friendId))
         {
-            if (v1)
+            try
             {
-                _playerGeoEventSlot = piranhaMessage.GetEventSlot();
-                return 1;
+                IdentifierListener.GetLogicGameListenerByAccountId(friendId).Send(
+                    new FriendListMessage(friend, friend.GetFriendIds()));
             }
-
-            var message = new MatchmakeFailedMessage();
+            catch
             {
-                message.SetErrorCode(19);
+                // The other player may be disconnecting.
             }
-
-            SendMessage(message);
         }
 
+        return 1;
+    }
+
+    private int RemoveFriendMessageReceived(RemoveFriendMessage message)
+    {
+        var account = serverConnection!.GetAccountModel();
+        var friendId = message.GetAvatarId();
+        account.RemoveFriend(friendId);
+
+        var friend = Databases.AccountDatabase.LoadAccount(friendId);
+        if (friend != null!)
+        {
+            friend.RemoveFriend(account.GetAccountId());
+            if (IdentifierListener.GetV2LogicGameListenerByAccountId(friendId))
+            {
+                try
+                {
+                    IdentifierListener.GetLogicGameListenerByAccountId(friendId).Send(
+                        new FriendListMessage(friend, friend.GetFriendIds()));
+                }
+                catch
+                {
+                    // The other player may be disconnecting.
+                }
+            }
+        }
+
+        SendFriendList();
+        return 1;
+    }
+
+
+    private int LookForGameRoomRequestMessageReceived(LookForGameRoomRequestMessage message)
+    {
+        if (!TeamRoomManager.StartPlayersSearch(serverConnection!, message.GetEventId()))
+            return 0;
+        var status = new MatchMakingStatusMessage();
+        status.SetSeconds(0);
+        status.SetFoundPlayers(0);
+        status.SetMaxFounds(3);
+        SendMessage(status);
+        return 1;
+    }
+
+    private int MatchmakeRequestMessageReceived(MatchmakeRequestMessage piranhaMessage)
+    {
+        var accountId = serverConnection!.GetAccountModel().GetAccountId();
+        var party = TeamRoomManager.GetMembers(accountId);
+        if (party.Count == 0) party = new[] { serverConnection! };
+
+        var matchmaker = Saver.OwnMatchmakingManager.MatchmakingManagers[piranhaMessage.GetEventSlot()];
+        if (matchmaker.AddPlayersToMassive(party))
+        {
+            foreach (var member in party)
+                member.GetMessageManager()!._playerGeoEventSlot = piranhaMessage.GetEventSlot();
+            return 1;
+        }
+
+        var message = new MatchmakeFailedMessage();
+        message.SetErrorCode(19);
+        SendMessage(message);
         return 1;
     }
 

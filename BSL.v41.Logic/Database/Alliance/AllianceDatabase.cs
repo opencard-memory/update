@@ -156,6 +156,20 @@ public class AllianceDatabase : AllianceModel
         return localUs ? _onRamBase : JsonConvert.DeserializeObject<Dictionary<long, AllianceModel>>(json)!;
     }
 
+    public bool DeleteAlliance(long allianceId)
+    {
+        try
+        {
+            var json = File.ReadAllText(_filePath!);
+            var data = JsonConvert.DeserializeObject<Dictionary<long, AllianceModel>>(json) ?? new Dictionary<long, AllianceModel>();
+            if (!data.Remove(allianceId)) return false;
+            _onRamBase.Remove(allianceId);
+            File.WriteAllText(_filePath!, JsonConvert.SerializeObject(data, Formatting.Indented));
+            return true;
+        }
+        catch { return false; }
+    }
+
     public long GetMaxAllianceId()
     {
         return _onRamBase.Count == 0 ? 0 : _onRamBase.Keys.Max();
