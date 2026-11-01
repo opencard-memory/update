@@ -289,7 +289,7 @@ public class MessageManager(
     private int KickAllianceMemberMessageReceived(KickAllianceMemberMessage m){ClubManager.Kick(serverConnection!,m.AccountId);return 1;}
     private int ChangeAllianceMemberRoleMessageReceived(ChangeAllianceMemberRoleMessage m){ClubManager.ChangeRole(serverConnection!,m.AccountId,m.Role);return 1;}
     private int ChatToAllianceStreamMessageReceived(ChatToAllianceStreamMessage m){ClubManager.Chat(serverConnection!,m.Message);return 1;}
-    private int RequestJoinAllianceMessageReceived(RequestJoinAllianceMessage m){ClubManager.Request(serverConnection!,m.AllianceId);return 1;}
+    private int RequestJoinAllianceMessageReceived(RequestJoinAllianceMessage m){ClubManager.RequestJoin(serverConnection!,m.AllianceId);return 1;}
     private int RespondToAllianceJoinRequestMessageReceived(RespondToAllianceJoinRequestMessage m){ClubManager.Respond(serverConnection!,m.AccountId,m.Accept);return 1;}
     private int SendAllianceInvitationMessageReceived(SendAllianceInvitationMessage m){ClubManager.Invite(serverConnection!,m.AccountId);return 1;}
     private int SendAllianceInvitationToFriendMessageReceived(SendAllianceInvitationToFriendMessage m){ClubManager.Invite(serverConnection!,m.AccountId);return 1;}
