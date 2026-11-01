@@ -848,7 +848,7 @@ public class MessageManager(
     {
         var accountId = serverConnection!.GetAccountModel().GetAccountId();
         var party = TeamRoomManager.GetMembers(accountId);
-        if (party.Count == 0) party = new[] { serverConnection };
+        if (party.Count == 0) party = new[] { serverConnection! };
 
         var matchmaker = Saver.OwnMatchmakingManager.MatchmakingManagers[piranhaMessage.GetEventSlot()];
         if (matchmaker.AddPlayersToMassive(party))
