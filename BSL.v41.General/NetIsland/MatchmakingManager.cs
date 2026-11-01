@@ -217,7 +217,7 @@ public class MatchmakingManager
             }
 
             var i = 0;
-            var nextTeamIndex = 0;
+            var teamSizes = new int[2];
             var teamByRoom = new Dictionary<int, int>();
             foreach (var player in players) // player-part.
             {
@@ -249,13 +249,16 @@ public class MatchmakingManager
                     {
                         if (!teamByRoom.TryGetValue(roomId, out teamIndex))
                         {
-                            teamIndex = nextTeamIndex++ % 2;
+                            teamIndex = teamSizes[0] <= teamSizes[1] ? 0 : 1;
                             teamByRoom[roomId] = teamIndex;
+                            teamSizes[teamIndex] += players.Count(entry =>
+                                TeamRoomManager.GetRoomId(entry.Key) == roomId);
                         }
                     }
                     else
                     {
-                        teamIndex = nextTeamIndex++ % 2;
+                        teamIndex = teamSizes[0] <= teamSizes[1] ? 0 : 1;
+                        teamSizes[teamIndex]++;
                     }
                     logicPlayer.SetTeamIndex(teamIndex);
                     logicPlayer.SetBounty(gameModeVariation == 3);
