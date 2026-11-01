@@ -204,14 +204,16 @@ public static class TeamRoomManager
         lock (Sync)
         {
             var senderId = sender.GetAccountModel().GetAccountId();
-            if (TeamChatMuted.Contains(senderId) ||
-                !PlayerRooms.TryGetValue(senderId, out var roomId) ||
+            if (!PlayerRooms.TryGetValue(senderId, out var roomId) ||
                 !Rooms.TryGetValue(roomId, out var room)) return false;
             var name = sender.GetAccountModel()
                 .GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AvatarName)?.ToString() ?? "Brawler";
             room.StreamTick++;
             foreach (var member in room.Members)
+            {
+                if (TeamChatMuted.Contains(member.Connection.GetAccountModel().GetAccountId())) continue;
                 try { member.Connection.GetMessaging()!.Send(new TeamStreamMessage(roomId, room.StreamTick, senderId, name, message)); } catch { }
+            }
             return true;
         }
     }
