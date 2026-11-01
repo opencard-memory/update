@@ -34,6 +34,51 @@
     "_supportedCreator": "BSL-V41",
     "_trophies": 0,
     "_trophyRoadProgress": 1,
-    "_userIsAuthed": true
+    "_userIsAuthed": true,
+    "_resourceAmounts": null,
+    "_banType": 0,
+    "_banEndTime": 0,
+    "_banReason": null
+  },
+  "2": {
+    "_accountCreatedDate": "2026-11-01-(일요일) 15:12:38",
+    "_accountId": 2,
+    "_allianceId": 0,
+    "_allianceMemberEntry": null,
+    "_avatarName": "Moskau",
+    "_homeBrawlerGlobalId": 16000000,
+    "_homeId": 0,
+    "_intValueEntryX": {},
+    "_intValueEntryY": {
+      "1": {
+        "Key": 1,
+        "Value": 41000038
+      }
+    },
+    "_languageLaserFactory": 0,
+    "_lastCreateAllianceTime": 0,
+    "_lastOnlineTime": 1793514321,
+    "_logicOfferBundleList": [],
+    "_maxTrophies": 0,
+    "_nameChangeCount": 0,
+    "_nameChangeEndTime": 0,
+    "_nameColorGlobalId": 43000000,
+    "_nameSetByUser": true,
+    "_notificationFactoryIntraSignedId": 20,
+    "_passToken": "6KtGmjUjmr6kfWZFkjjTFVuFxlRZlJX4ZsPs5SKDhBgA8NDHzABQJ1uJbAilr",
+    "_playerAge": 999,
+    "_playerStatus": 0,
+    "_playerThumbnailGlobalId": 28000000,
+    "_playTimeSeconds": 466,
+    "_sessionCount": 2,
+    "_startPlayTimeSeconds": 1793513558,
+    "_supportedCreator": "BSL-V41",
+    "_trophies": 0,
+    "_trophyRoadProgress": 1,
+    "_userIsAuthed": true,
+    "_resourceAmounts": null,
+    "_banType": 0,
+    "_banEndTime": 0,
+    "_banReason": null
   }
 }

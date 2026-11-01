@@ -1,2 +1,11 @@
 2026-10-31 14:22:43	211.228.183.221	login.ok	
 2026-10-31 14:43:08	172.30.1.254	login.ok	
+2026-10-31 14:47:28	211.228.183.221	login.ok	
+2026-11-01 15:13:15	14.45.19.27	login.fail	
+2026-11-01 15:13:18	14.45.19.27	login.fail	
+2026-11-01 15:13:19	14.45.19.27	login.fail	
+2026-11-01 15:13:20	14.45.19.27	login.fail	
+2026-11-01 15:13:20	14.45.19.27	login.fail	
+2026-11-01 15:20:50	14.45.19.27	login.ok	
+2026-11-01 15:21:08	14.45.19.27	events.reroll	OK {} -> 이벤트 맵을 새로 뽑았습니다.
+2026-11-01 15:23:30	14.45.19.27	events.save	OK {"rotate_seconds":1800,"slots":[{"slot":1,"category":"트로피 이벤트","game_modes":["GemGrab"],"locations":[],"enabled":true},{"slot":2,"category":"트로피 이벤트","game_modes":["Showdown","DuoShowdown"],"locations":[],"enabled":true},{"slot":3,"category":"트로피 이벤트","game_modes":["BrawlBall"],"locations":[],"enabl -> 이벤트를 저장하고 적용했습니다.

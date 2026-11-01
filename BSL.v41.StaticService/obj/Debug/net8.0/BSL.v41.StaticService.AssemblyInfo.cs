@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BSL.v41.StaticService")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7edbb27c5b55e6d84605d91bc14008f7927be61e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+43497c42aa42f6550cd09990dc0e209ce7d3a67e")]
 [assembly: System.Reflection.AssemblyProductAttribute("BSL.v41.StaticService")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BSL.v41.StaticService")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

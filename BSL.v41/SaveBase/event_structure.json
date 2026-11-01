@@ -1,14 +1,102 @@
 {
-  "rotate_seconds": 0,
   "slots": [
     {
       "slot": 1,
-      "category": "",
+      "category": "트로피 이벤트",
+      "game_modes": [
+        "GemGrab"
+      ],
+      "locations": [],
+      "enabled": true
+    },
+    {
+      "slot": 2,
+      "category": "트로피 이벤트",
+      "game_modes": [
+        "Showdown",
+        "DuoShowdown"
+      ],
+      "locations": [],
+      "enabled": true
+    },
+    {
+      "slot": 3,
+      "category": "트로피 이벤트",
+      "game_modes": [
+        "BrawlBall"
+      ],
+      "locations": [],
+      "enabled": true
+    },
+    {
+      "slot": 4,
+      "category": "트로피 이벤트",
+      "game_modes": [
+        "Knockout"
+      ],
+      "locations": [],
+      "enabled": true
+    },
+    {
+      "slot": 5,
+      "category": "트로피 이벤트",
+      "game_modes": [
+        "Bounty"
+      ],
+      "locations": [],
+      "enabled": true
+    },
+    {
+      "slot": 6,
+      "category": "트로피 이벤트",
+      "game_modes": [
+        "Heist"
+      ],
+      "locations": [],
+      "enabled": true
+    },
+    {
+      "slot": 7,
+      "category": "트로피 이벤트",
+      "game_modes": [
+        "KingOfHill"
+      ],
+      "locations": [],
+      "enabled": true
+    },
+    {
+      "slot": 8,
+      "category": "트로피 이벤트",
+      "game_modes": [
+        "Siege"
+      ],
+      "locations": [],
+      "enabled": true
+    },
+    {
+      "slot": 9,
+      "category": "특별 이벤트",
+      "game_modes": [
+        "BossFight"
+      ],
+      "locations": [
+        57,
+        67,
+        133,
+        325,
+        326
+      ],
+      "enabled": true
+    },
+    {
+      "slot": 10,
+      "category": "챌린지",
       "game_modes": [
         "Bounty"
       ],
       "locations": [],
       "enabled": true
     }
-  ]
+  ],
+  "rotate_seconds": 1800
 }
