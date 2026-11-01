@@ -18,6 +18,8 @@ public static class TeamRoomManager
         public int Id { get; } = id;
         public int RoomType { get; } = roomType;
         public int MapId { get; } = mapId;
+        public long LeaderId { get; set; }
+        public int StreamTick { get; set; }
         public List<Member> Members { get; } = new();
     }
 
@@ -25,6 +27,9 @@ public static class TeamRoomManager
     private static readonly Dictionary<int, Room> Rooms = new();
     private static readonly Dictionary<long, int> PlayerRooms = new();
     private static readonly Dictionary<long, HashSet<int>> PendingInvites = new();
+    private static readonly HashSet<long> InvitesBlocked = new();
+    private static readonly HashSet<long> TeamChatMuted = new();
+    private static readonly Dictionary<int, HashSet<long>> PendingJoinRequests = new();
     private static int _nextRoomId = 1000;
 
     public static bool Create(ServerConnection connection, int roomType, int mapId)
@@ -35,7 +40,7 @@ public static class TeamRoomManager
             if (PlayerRooms.ContainsKey(accountId)) return false;
 
             var id = Interlocked.Increment(ref _nextRoomId);
-            var room = new Room(id, roomType, mapId);
+            var room = new Room(id, roomType, mapId) { LeaderId = accountId };
             room.Members.Add(new Member(connection));
             Rooms.Add(id, room);
             PlayerRooms.Add(accountId, id);
@@ -49,7 +54,8 @@ public static class TeamRoomManager
         lock (Sync)
         {
             var inviterId = inviterConnection.GetAccountModel().GetAccountId();
-            if (!PlayerRooms.TryGetValue(inviterId, out var roomId) ||
+            if (InvitesBlocked.Contains(targetAccountId) ||
+                !PlayerRooms.TryGetValue(inviterId, out var roomId) ||
                 !Rooms.ContainsKey(roomId) ||
                 !inviterConnection.GetAccountModel().GetFriendIds().Contains(targetAccountId) ||
                 Databases.AccountDatabase.LoadAccount(targetAccountId) == null! ||
@@ -96,6 +102,7 @@ public static class TeamRoomManager
 
             room.Members.Add(new Member(connection));
             PlayerRooms.Add(accountId, roomId);
+            if (PendingJoinRequests.TryGetValue(roomId, out var requests)) { requests.Remove(accountId); if (requests.Count == 0) PendingJoinRequests.Remove(roomId); }
             Broadcast(room);
             return true;
         }
@@ -111,11 +118,21 @@ public static class TeamRoomManager
 
             room.Members.RemoveAll(m => m.Connection.GetAccountModel().GetAccountId() == accountId);
             PlayerRooms.Remove(accountId);
+            if (room.LeaderId == accountId && room.Members.Count > 0)
+                room.LeaderId = room.Members[0].Connection.GetAccountModel().GetAccountId();
+            if (PendingJoinRequests.TryGetValue(roomId, out var requests))
+            {
+                requests.Remove(accountId);
+                if (requests.Count == 0) PendingJoinRequests.Remove(roomId);
+            }
             PendingInvites.Remove(accountId);
             try { connection.GetMessaging()!.Send(new TeamLeftServerMessage(reason)); } catch { }
 
             if (room.Members.Count == 0)
+            {
                 Rooms.Remove(roomId);
+                PendingJoinRequests.Remove(roomId);
+            };
             else
                 Broadcast(room);
         }
@@ -156,6 +173,103 @@ public static class TeamRoomManager
     public static int GetRoomId(long accountId)
     {
         lock (Sync) return PlayerRooms.GetValueOrDefault(accountId);
+    }
+
+
+    public static bool Kick(ServerConnection leaderConnection, long targetAccountId)
+    {
+        lock (Sync)
+        {
+            var leaderId = leaderConnection.GetAccountModel().GetAccountId();
+            if (!PlayerRooms.TryGetValue(leaderId, out var roomId) ||
+                !Rooms.TryGetValue(roomId, out var room) || room.LeaderId != leaderId ||
+                targetAccountId == leaderId) return false;
+            var target = room.Members.FirstOrDefault(m =>
+                m.Connection.GetAccountModel().GetAccountId() == targetAccountId);
+            if (target == null) return false;
+            room.Members.Remove(target);
+            PlayerRooms.Remove(targetAccountId);
+            try { target.Connection.GetMessaging()!.Send(new TeamLeftServerMessage(1)); } catch { }
+            Broadcast(room);
+            return true;
+        }
+    }
+
+    public static bool SendChat(ServerConnection sender, string message)
+    {
+        if (string.IsNullOrWhiteSpace(message)) return false;
+        message = message.Trim();
+        if (message.Length > 200) message = message[..200];
+        lock (Sync)
+        {
+            var senderId = sender.GetAccountModel().GetAccountId();
+            if (TeamChatMuted.Contains(senderId) ||
+                !PlayerRooms.TryGetValue(senderId, out var roomId) ||
+                !Rooms.TryGetValue(roomId, out var room)) return false;
+            var name = sender.GetAccountModel()
+                .GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AvatarName)?.ToString() ?? "Brawler";
+            room.StreamTick++;
+            var packet = new TeamStreamMessage(roomId, room.StreamTick, senderId, name, message);
+            foreach (var member in room.Members)
+                try { member.Connection.GetMessaging()!.Send(packet.CloneForSend()); } catch { }
+            return true;
+        }
+    }
+
+    public static void SetInvitesBlocked(ServerConnection connection, bool blocked)
+    {
+        lock (Sync)
+        {
+            var id = connection.GetAccountModel().GetAccountId();
+            if (blocked) InvitesBlocked.Add(id); else InvitesBlocked.Remove(id);
+            if (blocked) PendingInvites.Remove(id);
+        }
+    }
+
+    public static void SetChatMuted(ServerConnection connection, bool muted)
+    {
+        lock (Sync)
+        {
+            var id = connection.GetAccountModel().GetAccountId();
+            if (muted) TeamChatMuted.Add(id); else TeamChatMuted.Remove(id);
+        }
+    }
+
+    public static IReadOnlyList<(int RoomId, int RoomType, int MapId, int Members)> FindOpenRooms()
+    {
+        lock (Sync)
+            return Rooms.Values.Where(r => r.Members.Count < 3)
+                .Select(r => (r.Id, r.RoomType, r.MapId, r.Members.Count)).ToArray();
+    }
+
+    public static bool RequestJoin(ServerConnection requester, int roomId)
+    {
+        lock (Sync)
+        {
+            var id = requester.GetAccountModel().GetAccountId();
+            if (PlayerRooms.ContainsKey(id) || !Rooms.TryGetValue(roomId, out var room) || room.Members.Count >= 3)
+                return false;
+            if (!PendingJoinRequests.TryGetValue(roomId, out var requests))
+                PendingJoinRequests[roomId] = requests = new HashSet<long>();
+            requests.Add(id);
+            return true;
+        }
+    }
+
+    public static bool ApproveJoin(ServerConnection leaderConnection, long targetAccountId)
+    {
+        lock (Sync)
+        {
+            var leaderId = leaderConnection.GetAccountModel().GetAccountId();
+            if (!PlayerRooms.TryGetValue(leaderId, out var roomId) ||
+                !Rooms.TryGetValue(roomId, out var room) || room.LeaderId != leaderId ||
+                !PendingJoinRequests.TryGetValue(roomId, out var requests) || !requests.Remove(targetAccountId))
+                return false;
+            if (requests.Count == 0) PendingJoinRequests.Remove(roomId);
+            var target = IdentifierListener.GetLogicGameListenerByAccountId(targetAccountId);
+            if (target?.GetServerConnection() == null) return false;
+            return Join(target.GetServerConnection(), roomId);
+        }
     }
 
     private static void Broadcast(Room room)
