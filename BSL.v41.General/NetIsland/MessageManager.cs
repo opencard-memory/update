@@ -146,6 +146,18 @@ public class MessageManager(
             14365 => TeamInviteMessageReceived((TeamInviteMessage)piranhaMessage),
             14479 => TeamInvitationResponseMessageReceived((TeamInvitationResponseMessage)piranhaMessage),
             10212 => ChangeAvatarNameMessageReceived((ChangeAvatarNameMessage)piranhaMessage),
+            14303 => SendJoinableAlliancesList(),
+            14304 => 0,
+            14305 => JoinAllianceMessageReceived((JoinAllianceMessage)piranhaMessage),
+            14306 => ChangeAllianceMemberRoleMessageReceived((ChangeAllianceMemberRoleMessage)piranhaMessage),
+            14307 => KickAllianceMemberMessageReceived((KickAllianceMemberMessage)piranhaMessage),
+            14315 => ChatToAllianceStreamMessageReceived((ChatToAllianceStreamMessage)piranhaMessage),
+            14317 => RequestJoinAllianceMessageReceived((RequestJoinAllianceMessage)piranhaMessage),
+            14321 => RespondToAllianceJoinRequestMessageReceived((RespondToAllianceJoinRequestMessage)piranhaMessage),
+            14322 => SendAllianceInvitationMessageReceived((SendAllianceInvitationMessage)piranhaMessage),
+            14323 => JoinAllianceUsingInvitationMessageReceived((JoinAllianceUsingInvitationMessage)piranhaMessage),
+            14324 => SearchAlliancesMessageReceived((SearchAlliancesMessage)piranhaMessage),
+            14326 => SendAllianceInvitationToFriendMessageReceived((SendAllianceInvitationToFriendMessage)piranhaMessage),
             14301 => CreateAllianceMessageReceived((CreateAllianceMessage)piranhaMessage),
             14302 => AskForAllianceDataMessageReceived((AskForAllianceDataMessage)piranhaMessage),
             14316 => ChangeAllianceSettingsMessageReceived((ChangeAllianceSettingsMessage)piranhaMessage),
@@ -271,77 +283,18 @@ public class MessageManager(
         return 1;
     }
 
-    private int LeaveAllianceMessageReceived(LeaveAllianceMessage piranhaMessage)
-    {
-        AllianceResponseMessage? allianceResponseMessage;
-
-        var v1 = (long)serverConnection!.GetAccountModel()
-            .GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AllianceId);
-
-        if (v1 < 1)
-        {
-            allianceResponseMessage = new AllianceResponseMessage();
-            {
-                allianceResponseMessage.IsResponse(94);
-            }
-
-            SendMessage(allianceResponseMessage);
-            return 0;
-        }
-
-        var v2 = Databases.AllianceDatabase.LoadAlliance(v1);
-        {
-            var d1 =
-                (Dictionary<long, AllianceMemberEntry>)v2.GetFieldValueByAllianceStructureParameterFromAllianceModel(
-                    AllianceStructure.AllianceMemberEntryList);
-            {
-                d1.Remove(serverConnection!.GetAccountModel().GetAccountId());
-            }
-
-            v2.SetFieldValueByAllianceStructureParameterFromAllianceModel(AllianceStructure.AllianceMemberEntryList,
-                d1);
-        }
-
-        serverConnection.GetAccountModel()
-            .SetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AllianceId, (long)0);
-
-        allianceResponseMessage = new AllianceResponseMessage();
-        {
-            allianceResponseMessage.IsResponse(80);
-        }
-
-        SendMessage(allianceResponseMessage);
-        SendMessage(new MyAllianceMessage());
-
-        var allianceModel = Databases.AllianceDatabase.LoadAlliance(97);
-        var allianceMemberEntry = new AllianceMemberEntry
-        {
-            AccountId = serverConnection.GetAccountModel().GetAccountId(),
-            AllianceRoleHelperTable = AllianceRoleHelperTable.Member
-        };
-
-        serverConnection!.GetAccountModel()
-            .SetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AllianceId,
-                allianceModel.GetAllianceId());
-        serverConnection.GetAccountModel()
-            .SetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AllianceMemberEntry,
-                allianceMemberEntry);
-
-        var c = (Dictionary<long, AllianceMemberEntry>)
-            allianceModel.GetFieldValueByAllianceStructureParameterFromAllianceModel(
-                AllianceStructure.AllianceMemberEntryList);
-        c.Add(serverConnection.GetAccountModel().GetAccountId(), allianceMemberEntry);
-
-        allianceModel.SetFieldValueByAllianceStructureParameterFromAllianceModel(
-            AllianceStructure.AllianceMemberEntryList, c);
-
-        ToSendAutomizeHelper.SendAllianceStatus(
-            Databases.AllianceDatabase.LoadAlliance(
-                Convert.ToInt64(serverConnection!.GetAccountModel()
-                    .GetFieldValueByAccountStructureParameterFromAccountModel(
-                        AccountStructure.AllianceId))), serverConnection!.GetAccountModel().GetAccountId());
-        return 1;
-    }
+    private int LeaveAllianceMessageReceived(LeaveAllianceMessage piranhaMessage){ClubManager.Leave(serverConnection!);return 1;}
+    private int SendJoinableAlliancesList(){ClubManager.Joinable(serverConnection!);return 1;}
+    private int JoinAllianceMessageReceived(JoinAllianceMessage m){if(!ClubManager.Join(serverConnection!,m.AllianceId))ClubManager.Request(serverConnection!,m.AllianceId);return 1;}
+    private int KickAllianceMemberMessageReceived(KickAllianceMemberMessage m){ClubManager.Kick(serverConnection!,m.AccountId);return 1;}
+    private int ChangeAllianceMemberRoleMessageReceived(ChangeAllianceMemberRoleMessage m){ClubManager.Role(serverConnection!,m.AccountId,m.Role);return 1;}
+    private int ChatToAllianceStreamMessageReceived(ChatToAllianceStreamMessage m){ClubManager.Chat(serverConnection!,m.Message);return 1;}
+    private int RequestJoinAllianceMessageReceived(RequestJoinAllianceMessage m){ClubManager.Request(serverConnection!,m.AllianceId);return 1;}
+    private int RespondToAllianceJoinRequestMessageReceived(RespondToAllianceJoinRequestMessage m){ClubManager.Respond(serverConnection!,m.AccountId,m.Accept);return 1;}
+    private int SendAllianceInvitationMessageReceived(SendAllianceInvitationMessage m){ClubManager.Invite(serverConnection!,m.AccountId);return 1;}
+    private int SendAllianceInvitationToFriendMessageReceived(SendAllianceInvitationToFriendMessage m){ClubManager.Invite(serverConnection!,m.AccountId);return 1;}
+    private int JoinAllianceUsingInvitationMessageReceived(JoinAllianceUsingInvitationMessage m){ClubManager.Join(serverConnection!,m.AllianceId,true);return 1;}
+    private int SearchAlliancesMessageReceived(SearchAlliancesMessage m){ClubManager.Search(serverConnection!,m.SearchText);return 1;}
 
     private int ChangeAllianceSettingsMessageReceived(ChangeAllianceSettingsMessage piranhaMessage)
     {
