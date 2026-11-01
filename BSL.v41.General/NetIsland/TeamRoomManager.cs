@@ -75,7 +75,7 @@ public static class TeamRoomManager
         }
     }
 
-    public static void SetReady(ServerConnection connection, bool ready)
+    public static void ToggleReady(ServerConnection connection)
     {
         lock (Sync)
         {
@@ -86,7 +86,7 @@ public static class TeamRoomManager
             var member = room.Members.FirstOrDefault(m =>
                 m.Connection.GetAccountModel().GetAccountId() == accountId);
             if (member == null) return;
-            member.Ready = ready;
+            member.Ready = !member.Ready;
             Broadcast(room);
         }
     }
