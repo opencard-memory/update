@@ -105,10 +105,9 @@ public static class TeamRoomManager
     {
         var members = room.Members.Select(m =>
             (m.Connection.GetAccountModel(), m.Ready)).ToList();
-        var message = new TeamRoomMessage(room.Id, room.RoomType, room.MapId, members);
         foreach (var member in room.Members)
         {
-            try { member.Connection.GetMessaging()!.Send(message); }
+            try { member.Connection.GetMessaging()!.Send(new TeamRoomMessage(room.Id, room.RoomType, room.MapId, members)); }
             catch { /* disconnected member is removed by connection cleanup */ }
         }
     }
