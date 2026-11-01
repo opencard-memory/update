@@ -133,7 +133,7 @@ public static class TeamRoomManager
             {
                 Rooms.Remove(roomId);
                 PendingJoinRequests.Remove(roomId);
-            };
+            }
             else
                 Broadcast(room);
         }
