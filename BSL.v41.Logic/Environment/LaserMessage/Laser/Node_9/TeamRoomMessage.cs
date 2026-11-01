@@ -1,4 +1,5 @@
 using BSL.v41.Logic.Database.Account;
+using BSL.v41.Supercell.Titan.CommonUtils;
 using BSL.v41.Supercell.Titan.CommonUtils.Utils;
 using BSL.v41.Titan.Mathematical.Data;
 using BSL.v41.Tools.LaserCsv;
@@ -7,10 +8,12 @@ namespace BSL.v41.Logic.Environment.LaserMessage.Laser.Node_9;
 
 public sealed class TeamRoomMessage : PiranhaMessage
 {
-    private readonly int _roomId;
-    private readonly int _roomType;
-    private readonly int _mapId;
-    private readonly IReadOnlyList<(AccountModel Account, bool Ready)> _members;
+    private int _roomId;
+    private int _roomType;
+    private int _mapId;
+    private IReadOnlyList<(AccountModel Account, bool Ready)> _members = Array.Empty<(AccountModel, bool)>();
+
+    public TeamRoomMessage() { Helper.Skip(); }
 
     public TeamRoomMessage(int roomId, int roomType, int mapId,
         IReadOnlyList<(AccountModel Account, bool Ready)> members)
@@ -40,7 +43,6 @@ public sealed class TeamRoomMessage : PiranhaMessage
             var id = account.GetAccountId();
             var name = account.GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AvatarName)?.ToString() ?? "Brawler";
             var brawler = Convert.ToInt32(account.GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.HomeBrawlerGlobalId));
-            var thumbnail = Convert.ToInt32(account.GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.PlayerThumbnailGlobalId));
             var trophies = Convert.ToInt32(account.GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.Trophies));
 
             ByteStream.WriteLong(id);
@@ -55,7 +57,6 @@ public sealed class TeamRoomMessage : PiranhaMessage
             ByteStream.WriteVInt(1);
             ByteStream.WriteBoolean(ready);
             ByteStream.WriteVInt(0);
-            ByteStream.WriteVInt(thumbnail);
         }
     }
 
