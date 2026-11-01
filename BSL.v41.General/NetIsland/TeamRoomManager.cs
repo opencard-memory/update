@@ -44,6 +44,48 @@ public static class TeamRoomManager
         }
     }
 
+    public static bool Invite(ServerConnection inviterConnection, long targetAccountId)
+    {
+        lock (Sync)
+        {
+            var inviterId = inviterConnection.GetAccountModel().GetAccountId();
+            if (!PlayerRooms.TryGetValue(inviterId, out var roomId) ||
+                !Rooms.ContainsKey(roomId) ||
+                !inviterConnection.GetAccountModel().GetFriendIds().Contains(targetAccountId) ||
+                Databases.AccountDatabase.LoadAccount(targetAccountId) == null! ||
+                !IdentifierListener.GetV2LogicGameListenerByAccountId(targetAccountId))
+                return false;
+
+            if (!PendingInvites.TryGetValue(targetAccountId, out var invites))
+                PendingInvites[targetAccountId] = invites = new HashSet<int>();
+            invites.Add(roomId);
+
+            try
+            {
+                IdentifierListener.GetLogicGameListenerByAccountId(targetAccountId).Send(
+                    new TeamInvitationMessage(roomId, inviterConnection.GetAccountModel()));
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+    }
+
+    public static bool RespondToInvite(ServerConnection connection, int roomId, bool accept)
+    {
+        lock (Sync)
+        {
+            var accountId = connection.GetAccountModel().GetAccountId();
+            if (!PendingInvites.TryGetValue(accountId, out var invites) || !invites.Remove(roomId))
+                return false;
+            if (invites.Count == 0) PendingInvites.Remove(accountId);
+        }
+
+        return !accept || Join(connection, roomId);
+    }
+
     public static bool Join(ServerConnection connection, int roomId)
     {
         lock (Sync)
