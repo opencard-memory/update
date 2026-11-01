@@ -161,7 +161,7 @@ public class MessageManager(
             14301 => CreateAllianceMessageReceived((CreateAllianceMessage)piranhaMessage),
             14302 => AskForAllianceDataMessageReceived((AskForAllianceDataMessage)piranhaMessage),
             14316 => ChangeAllianceSettingsMessageReceived((ChangeAllianceSettingsMessage)piranhaMessage),
-            14308 => LeaveAllianceMessageReceived((LeaveAllianceMessage)piranhaMessage),
+            14308 => LeaveAllianceMessageReceived((BSL.v41.Logic.Environment.LaserMessage.Laser.Node_11.LeaveAllianceMessage)piranhaMessage),
             30000 => AttributionMessageReceived((AttributionMessage)piranhaMessage),
             14118 => SinglePlayerMatchRequestMessageReceived((SinglePlayerMatchRequestMessage)piranhaMessage),
             _ => 0
@@ -283,7 +283,7 @@ public class MessageManager(
         return 1;
     }
 
-    private int LeaveAllianceMessageReceived(LeaveAllianceMessage piranhaMessage){ClubManager.Leave(serverConnection!);return 1;}
+    private int LeaveAllianceMessageReceived(BSL.v41.Logic.Environment.LaserMessage.Laser.Node_11.LeaveAllianceMessage piranhaMessage){ClubManager.Leave(serverConnection!);return 1;}
     private int SendJoinableAlliancesList(){ClubManager.Joinable(serverConnection!);return 1;}
     private int JoinAllianceMessageReceived(JoinAllianceMessage m){if(!ClubManager.Join(serverConnection!,m.AllianceId))ClubManager.Request(serverConnection!,m.AllianceId);return 1;}
     private int KickAllianceMemberMessageReceived(KickAllianceMemberMessage m){ClubManager.Kick(serverConnection!,m.AccountId);return 1;}
