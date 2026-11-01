@@ -116,6 +116,7 @@ public class MessageManager(
             10101 => LoginMessageReceived((LoginMessage)piranhaMessage),
             10108 => KeepAliveMessageReceived((KeepAliveMessage)piranhaMessage),
             14103 => MatchmakeRequestMessageReceived((MatchmakeRequestMessage)piranhaMessage),
+            14199 => LookForGameRoomRequestMessageReceived((LookForGameRoomRequestMessage)piranhaMessage),
             10177 => ClientInfoMessageReceived((ClientInfoMessage)piranhaMessage),
             10111 => AccountIdentifiersMessageReceived((AccountIdentifiersMessage)piranhaMessage),
             10107 => ClientCapabilitiesMessageReceived((ClientCapabilitiesMessage)piranhaMessage),
@@ -689,6 +690,11 @@ public class MessageManager(
 
     private int CancelMatchmakingMessageReceived(CancelMatchmakingMessage piranhaMessage)
     {
+        if (TeamRoomManager.CancelPlayersSearch(serverConnection!))
+        {
+            SendMessage(new MatchMakingCancelledMessage());
+            return 1;
+        }
         if (_playerGeoEventSlot < 0) return 0;
 
         var accountId = serverConnection!.GetAccountModel().GetAccountId();
@@ -889,6 +895,19 @@ public class MessageManager(
         }
 
         SendFriendList();
+        return 1;
+    }
+
+
+    private int LookForGameRoomRequestMessageReceived(LookForGameRoomRequestMessage message)
+    {
+        if (!TeamRoomManager.StartPlayersSearch(serverConnection!, message.GetEventId()))
+            return 0;
+        var status = new MatchMakingStatusMessage();
+        status.SetSeconds(0);
+        status.SetFoundPlayers(0);
+        status.SetMaxFounds(3);
+        SendMessage(status);
         return 1;
     }
 
