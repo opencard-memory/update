@@ -133,6 +133,10 @@ public class MessageManager(
             10504 => SendFriendList(),
             14350 => TeamCreateMessageReceived((TeamCreateMessage)piranhaMessage),
             14351 => TeamJoinMessageReceived((TeamJoinMessage)piranhaMessage),
+            14352 => TeamKickMessageReceived((TeamKickMessage)piranhaMessage),
+            14359 => TeamChatMessageReceived((TeamChatMessage)piranhaMessage),
+            14777 => SetInvitesBlockedMessageReceived((SetInvitesBlockedMessage)piranhaMessage),
+            14778 => SetTeamChatMutedMessageReceived((SetTeamChatMutedMessage)piranhaMessage),
             14353 => TeamLeaveMessageReceived(),
             14355 => TeamSetMemberReadyMessageReceived(),
             14365 => TeamInviteMessageReceived((TeamInviteMessage)piranhaMessage),
@@ -735,6 +739,25 @@ public class MessageManager(
             Saver.UdpInfoDomain,
             InteractiveModule.UdpSessionIdsMassive[serverConnection.GetAccountModel().GetAccountId()]));
 
+        return 1;
+    }
+
+
+    private int TeamKickMessageReceived(TeamKickMessage message) =>
+        TeamRoomManager.Kick(serverConnection!, message.GetTargetAccountId()) ? 1 : 0;
+
+    private int TeamChatMessageReceived(TeamChatMessage message) =>
+        TeamRoomManager.SendChat(serverConnection!, message.GetText()) ? 1 : 0;
+
+    private int SetInvitesBlockedMessageReceived(SetInvitesBlockedMessage message)
+    {
+        TeamRoomManager.SetInvitesBlocked(serverConnection!, message.GetBlocked());
+        return 1;
+    }
+
+    private int SetTeamChatMutedMessageReceived(SetTeamChatMutedMessage message)
+    {
+        TeamRoomManager.SetChatMuted(serverConnection!, message.GetMuted());
         return 1;
     }
 
