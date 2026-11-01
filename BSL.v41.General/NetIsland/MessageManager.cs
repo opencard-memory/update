@@ -846,23 +846,21 @@ public class MessageManager(
 
     private int MatchmakeRequestMessageReceived(MatchmakeRequestMessage piranhaMessage)
     {
-        var v1 = Saver.OwnMatchmakingManager.MatchmakingManagers[piranhaMessage.GetEventSlot()]
-            .AddPlayerToMassive(serverConnection!.GetAccountModel().GetAccountId(), serverConnection); 
+        var accountId = serverConnection!.GetAccountModel().GetAccountId();
+        var party = TeamRoomManager.GetMembers(accountId);
+        if (party.Count == 0) party = new[] { serverConnection };
+
+        var matchmaker = Saver.OwnMatchmakingManager.MatchmakingManagers[piranhaMessage.GetEventSlot()];
+        if (matchmaker.AddPlayersToMassive(party))
         {
-            if (v1)
-            {
-                _playerGeoEventSlot = piranhaMessage.GetEventSlot();
-                return 1;
-            }
-
-            var message = new MatchmakeFailedMessage();
-            {
-                message.SetErrorCode(19);
-            }
-
-            SendMessage(message);
+            foreach (var member in party)
+                member.GetMessageManager()!._playerGeoEventSlot = piranhaMessage.GetEventSlot();
+            return 1;
         }
 
+        var message = new MatchmakeFailedMessage();
+        message.SetErrorCode(19);
+        SendMessage(message);
         return 1;
     }
 
