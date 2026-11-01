@@ -1,5 +1,7 @@
 using BSL.v41.General.Networking;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_9;
+using BSL.v41.Logic.Environment.LaserListener;
+using BSL.v41.Logic.Database;
 
 namespace BSL.v41.General.NetIsland;
 
@@ -22,6 +24,7 @@ public static class TeamRoomManager
     private static readonly object Sync = new();
     private static readonly Dictionary<int, Room> Rooms = new();
     private static readonly Dictionary<long, int> PlayerRooms = new();
+    private static readonly Dictionary<long, HashSet<int>> PendingInvites = new();
     private static int _nextRoomId = 1000;
 
     public static bool Create(ServerConnection connection, int roomType, int mapId)
@@ -66,6 +69,7 @@ public static class TeamRoomManager
 
             room.Members.RemoveAll(m => m.Connection.GetAccountModel().GetAccountId() == accountId);
             PlayerRooms.Remove(accountId);
+            PendingInvites.Remove(accountId);
             try { connection.GetMessaging()!.Send(new TeamLeftServerMessage(reason)); } catch { }
 
             if (room.Members.Count == 0)
