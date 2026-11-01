@@ -9,7 +9,7 @@ public sealed class SetInvitesBlockedMessage : PiranhaMessage
     public override void Decode()
     {
         base.Decode();
-        _blocked = ByteStream.ReadBoolean();
+        _blocked = ByteStream.ReadVInt() != 0;
     }
     public bool GetBlocked() => _blocked;
     public override int GetMessageType() => 14777;
