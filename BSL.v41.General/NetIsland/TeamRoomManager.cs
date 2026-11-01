@@ -21,6 +21,8 @@ public static class TeamRoomManager
         public int MapId { get; } = mapId;
         public long LeaderId { get; set; }
         public int StreamTick { get; set; }
+        public bool IsSearching { get; set; }
+        public int SearchEventId { get; set; }
         public List<Member> Members { get; } = new();
     }
 
@@ -29,6 +31,7 @@ public static class TeamRoomManager
     private static readonly Dictionary<long, int> PlayerRooms = new();
     private static readonly Dictionary<long, HashSet<int>> PendingInvites = new();
     private static readonly Dictionary<int, Dictionary<long, ServerConnection>> PendingJoinRequests = new();
+    private static readonly Dictionary<int, List<ServerConnection>> PlayerSearchQueues = new();
     private static int _nextRoomId = 1000;
 
     public static bool Create(ServerConnection connection, int roomType, int mapId)
@@ -231,6 +234,74 @@ public static class TeamRoomManager
         {
             connection.GetAccountModel().SetTeamChatMuted(muted);
         }
+    }
+
+
+    public static bool StartPlayersSearch(ServerConnection connection, int eventId)
+    {
+        lock (Sync)
+        {
+            var accountId = connection.GetAccountModel().GetAccountId();
+            if (PlayerRooms.TryGetValue(accountId, out var roomId))
+            {
+                if (!Rooms.TryGetValue(roomId, out var room) || room.LeaderId != accountId)
+                    return false;
+                room.IsSearching = true;
+                room.SearchEventId = eventId;
+                TryFillSearchRooms(eventId);
+                return true;
+            }
+
+            if (!PlayerSearchQueues.TryGetValue(eventId, out var queue))
+                PlayerSearchQueues[eventId] = queue = new List<ServerConnection>();
+            if (queue.All(p => p.GetAccountModel().GetAccountId() != accountId))
+                queue.Add(connection);
+            TryFillSearchRooms(eventId);
+            return true;
+        }
+    }
+
+    public static bool CancelPlayersSearch(ServerConnection connection)
+    {
+        lock (Sync)
+        {
+            var id = connection.GetAccountModel().GetAccountId();
+            var cancelled = false;
+            foreach (var pair in PlayerSearchQueues.ToArray())
+            {
+                var removed = pair.Value.RemoveAll(p => p.GetAccountModel().GetAccountId() == id);
+                cancelled |= removed > 0;
+                if (pair.Value.Count == 0) PlayerSearchQueues.Remove(pair.Key);
+            }
+            if (PlayerRooms.TryGetValue(id, out var roomId) && Rooms.TryGetValue(roomId, out var room) &&
+                room.LeaderId == id && room.IsSearching)
+            {
+                room.IsSearching = false;
+                cancelled = true;
+            }
+            return cancelled;
+        }
+    }
+
+    private static void TryFillSearchRooms(int eventId)
+    {
+        if (!PlayerSearchQueues.TryGetValue(eventId, out var queue) || queue.Count == 0) return;
+        foreach (var room in Rooms.Values.Where(r => r.IsSearching && r.SearchEventId == eventId && r.Members.Count < 3).ToArray())
+        {
+            while (room.Members.Count < 3 && queue.Count > 0)
+            {
+                var candidate = queue[0];
+                queue.RemoveAt(0);
+                var id = candidate.GetAccountModel().GetAccountId();
+                if (PlayerRooms.ContainsKey(id)) continue;
+                room.Members.Add(new Member(candidate));
+                PlayerRooms[id] = room.Id;
+            }
+            Broadcast(room);
+            if (room.Members.Count >= 3) room.IsSearching = false;
+            if (queue.Count == 0) break;
+        }
+        if (queue.Count == 0) PlayerSearchQueues.Remove(eventId);
     }
 
     public static IReadOnlyList<(int RoomId, int RoomType, int MapId, int Members)> FindOpenRooms()
