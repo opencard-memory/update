@@ -134,6 +134,7 @@ public class MessageManager(
             14350 => TeamCreateMessageReceived((TeamCreateMessage)piranhaMessage),
             14351 => TeamJoinMessageReceived((TeamJoinMessage)piranhaMessage),
             14353 => TeamLeaveMessageReceived(),
+            14355 => TeamSetMemberReadyMessageReceived(),
             10212 => ChangeAvatarNameMessageReceived((ChangeAvatarNameMessage)piranhaMessage),
             14301 => CreateAllianceMessageReceived((CreateAllianceMessage)piranhaMessage),
             14302 => AskForAllianceDataMessageReceived((AskForAllianceDataMessage)piranhaMessage),
@@ -740,6 +741,12 @@ public class MessageManager(
     private int TeamJoinMessageReceived(TeamJoinMessage message)
     {
         return TeamRoomManager.Join(serverConnection!, message.GetRoomId()) ? 1 : 0;
+    }
+
+    private int TeamSetMemberReadyMessageReceived()
+    {
+        TeamRoomManager.ToggleReady(serverConnection!);
+        return 1;
     }
 
     private int TeamLeaveMessageReceived()
