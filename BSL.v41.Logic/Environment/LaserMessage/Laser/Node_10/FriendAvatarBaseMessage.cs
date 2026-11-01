@@ -3,7 +3,7 @@ using BSL.v41.Titan.Mathematical;
 
 namespace BSL.v41.Logic.Environment.LaserMessage.Laser.Node_10;
 
-public abstract class FriendAvatarBaseMessage : PiranhaMessage
+public class FriendAvatarBaseMessage : PiranhaMessage
 {
     private LogicLong _avatarId = new();
 
@@ -15,6 +15,7 @@ public abstract class FriendAvatarBaseMessage : PiranhaMessage
         _avatarId = new LogicLong().Decode(ByteStream);
     }
 
+    public override int GetMessageType() => 0;
     public long GetAvatarId() => (long)_avatarId;
     public override int GetServiceNodeType() => 3;
 }
