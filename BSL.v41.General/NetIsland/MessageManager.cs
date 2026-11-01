@@ -62,6 +62,7 @@ public class MessageManager(
             return LogicTimeUtil.GetTimestamp() - _lastKeepAliveReceivedTime < 6 * 5;
 
         IdentifierListener.RemoveLogicGameListenerByAccountId(serverConnection!.GetAccountModel().GetAccountId());
+        TeamRoomManager.Leave(serverConnection!);
 
         Saver.OwnMatchmakingManager.MatchmakingManagers[_playerGeoEventSlot]
             .RemovePlayerFromMassive(serverConnection!.GetAccountModel().GetAccountId(), true);
@@ -130,6 +131,9 @@ public class MessageManager(
             10501 => AcceptFriendMessageReceived((AcceptFriendMessage)piranhaMessage),
             10506 => RemoveFriendMessageReceived((RemoveFriendMessage)piranhaMessage),
             10504 => SendFriendList(),
+            14350 => TeamCreateMessageReceived((TeamCreateMessage)piranhaMessage),
+            14351 => TeamJoinMessageReceived((TeamJoinMessage)piranhaMessage),
+            14353 => TeamLeaveMessageReceived(),
             10212 => ChangeAvatarNameMessageReceived((ChangeAvatarNameMessage)piranhaMessage),
             14301 => CreateAllianceMessageReceived((CreateAllianceMessage)piranhaMessage),
             14302 => AskForAllianceDataMessageReceived((AskForAllianceDataMessage)piranhaMessage),
@@ -724,6 +728,23 @@ public class MessageManager(
             Saver.UdpInfoDomain,
             InteractiveModule.UdpSessionIdsMassive[serverConnection.GetAccountModel().GetAccountId()]));
 
+        return 1;
+    }
+
+    private int TeamCreateMessageReceived(TeamCreateMessage message)
+    {
+        TeamRoomManager.Leave(serverConnection!);
+        return TeamRoomManager.Create(serverConnection!, message.GetRoomType(), message.GetMapId()) ? 1 : 0;
+    }
+
+    private int TeamJoinMessageReceived(TeamJoinMessage message)
+    {
+        return TeamRoomManager.Join(serverConnection!, message.GetRoomId()) ? 1 : 0;
+    }
+
+    private int TeamLeaveMessageReceived()
+    {
+        TeamRoomManager.Leave(serverConnection!);
         return 1;
     }
 
