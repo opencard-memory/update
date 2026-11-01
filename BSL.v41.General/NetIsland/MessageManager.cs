@@ -682,14 +682,18 @@ public class MessageManager(
 
     private int CancelMatchmakingMessageReceived(CancelMatchmakingMessage piranhaMessage)
     {
-        SendMessage(new MatchMakingCancelledMessage());
-
         if (_playerGeoEventSlot < 0) return 0;
 
-        Saver.OwnMatchmakingManager.MatchmakingManagers[_playerGeoEventSlot]
-            .RemovePlayerFromMassive(serverConnection!.GetAccountModel().GetAccountId());
+        var accountId = serverConnection!.GetAccountModel().GetAccountId();
+        var party = TeamRoomManager.GetMembers(accountId);
+        if (party.Count == 0) party = new[] { serverConnection! };
+
+        var matchmaker = Saver.OwnMatchmakingManager.MatchmakingManagers[_playerGeoEventSlot];
+        foreach (var member in party)
         {
-            _playerGeoEventSlot = -1;
+            try { member.GetMessaging()!.Send(new MatchMakingCancelledMessage()); } catch { }
+            matchmaker.RemovePlayerFromMassive(member.GetAccountModel().GetAccountId());
+            member.GetMessageManager()!._playerGeoEventSlot = -1;
         }
 
         return 1;
