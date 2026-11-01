@@ -40,6 +40,7 @@ public class AccountModel(string jsonAccountModel = null!)
     [JsonProperty] private int _startPlayTimeSeconds; // private. Not use!
     [JsonProperty] private string? _supportedCreator; // private. Not use!
     [JsonProperty] private int _trophies; // private. Not use!
+    [JsonProperty] private HashSet<long> _friendIds = new(); // persistent friend relationships
     [JsonProperty] private int _trophyRoadProgress; // private. Not use!
     [JsonProperty] private bool _userIsAuthed; // private. Not use!
 
@@ -105,6 +106,30 @@ public class AccountModel(string jsonAccountModel = null!)
         _banType = 0;
         _banEndTime = 0;
         _banReason = null;
+    }
+
+
+    public IReadOnlyCollection<long> GetFriendIds()
+    {
+        _friendIds ??= new HashSet<long>();
+        return _friendIds.ToArray();
+    }
+
+    public bool AddFriend(long accountId)
+    {
+        if (accountId <= 0 || accountId == _accountId) return false;
+        _friendIds ??= new HashSet<long>();
+        var added = _friendIds.Add(accountId);
+        if (added) Persist();
+        return added;
+    }
+
+    public bool RemoveFriend(long accountId)
+    {
+        _friendIds ??= new HashSet<long>();
+        var removed = _friendIds.Remove(accountId);
+        if (removed) Persist();
+        return removed;
     }
 
     public void Persist()
