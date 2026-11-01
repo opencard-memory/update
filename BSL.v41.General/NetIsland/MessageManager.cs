@@ -11,6 +11,7 @@ using BSL.v41.Logic.Environment.LaserCommand.Laser;
 using BSL.v41.Logic.Environment.LaserListener;
 using BSL.v41.Logic.Environment.LaserMessage;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_1;
+using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_10;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_11;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_27;
 using BSL.v41.Logic.Environment.LaserMessage.Laser.Node_4;
@@ -125,6 +126,10 @@ public class MessageManager(
             14101 => GoHomeMessageReceived((GoHomeMessage)piranhaMessage),
             14366 => PlayerStatusMessageReceived((PlayerStatusMessage)piranhaMessage),
             10555 => ClientInputMessageReceived((ClientInputMessage)piranhaMessage),
+            10502 => AddFriendMessageReceived((AddFriendMessage)piranhaMessage),
+            10501 => AcceptFriendMessageReceived((AcceptFriendMessage)piranhaMessage),
+            10506 => RemoveFriendMessageReceived((RemoveFriendMessage)piranhaMessage),
+            10504 => SendFriendList(),
             10212 => ChangeAvatarNameMessageReceived((ChangeAvatarNameMessage)piranhaMessage),
             14301 => CreateAllianceMessageReceived((CreateAllianceMessage)piranhaMessage),
             14302 => AskForAllianceDataMessageReceived((AskForAllianceDataMessage)piranhaMessage),
@@ -719,6 +724,79 @@ public class MessageManager(
             Saver.UdpInfoDomain,
             InteractiveModule.UdpSessionIdsMassive[serverConnection.GetAccountModel().GetAccountId()]));
 
+        return 1;
+    }
+
+    private int SendFriendList()
+    {
+        var account = serverConnection!.GetAccountModel();
+        SendMessage(new FriendListMessage(account, account.GetFriendIds()));
+        return 1;
+    }
+
+    private int AddFriendMessageReceived(AddFriendMessage message)
+    {
+        return AddFriend(message.GetAvatarId());
+    }
+
+    private int AcceptFriendMessageReceived(AcceptFriendMessage message)
+    {
+        return AddFriend(message.GetAvatarId());
+    }
+
+    private int AddFriend(long friendId)
+    {
+        var account = serverConnection!.GetAccountModel();
+        if (friendId <= 0 || friendId == account.GetAccountId() ||
+            Databases.AccountDatabase.LoadAccount(friendId) == null!)
+            return 0;
+
+        account.AddFriend(friendId);
+        var friend = Databases.AccountDatabase.LoadAccount(friendId);
+        friend.AddFriend(account.GetAccountId());
+
+        SendFriendList();
+        if (IdentifierListener.GetV2LogicGameListenerByAccountId(friendId))
+        {
+            try
+            {
+                IdentifierListener.GetLogicGameListenerByAccountId(friendId).Send(
+                    new FriendListMessage(friend, friend.GetFriendIds()));
+            }
+            catch
+            {
+                // The other player may be disconnecting.
+            }
+        }
+
+        return 1;
+    }
+
+    private int RemoveFriendMessageReceived(RemoveFriendMessage message)
+    {
+        var account = serverConnection!.GetAccountModel();
+        var friendId = message.GetAvatarId();
+        account.RemoveFriend(friendId);
+
+        var friend = Databases.AccountDatabase.LoadAccount(friendId);
+        if (friend != null!)
+        {
+            friend.RemoveFriend(account.GetAccountId());
+            if (IdentifierListener.GetV2LogicGameListenerByAccountId(friendId))
+            {
+                try
+                {
+                    IdentifierListener.GetLogicGameListenerByAccountId(friendId).Send(
+                        new FriendListMessage(friend, friend.GetFriendIds()));
+                }
+                catch
+                {
+                    // The other player may be disconnecting.
+                }
+            }
+        }
+
+        SendFriendList();
         return 1;
     }
 
