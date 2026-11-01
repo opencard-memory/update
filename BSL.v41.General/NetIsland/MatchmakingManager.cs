@@ -23,6 +23,7 @@ public class MatchmakingManager
 
     private Dictionary<long, ServerConnection> _players = null!;
     private int _slot;
+    private readonly object _playersLock = new();
 
     public void Initialize(int slot, int maxPlayersCount)
     {
@@ -39,39 +40,47 @@ public class MatchmakingManager
 
     public bool AddPlayerToMassive(long accountId, ServerConnection serverConnection)
     {
-        Thread.Sleep(200);
-
-        if (_nowPlayersFoundedCount >= _maxPlayersCount) return false;
-        _players.TryAdd(accountId, serverConnection);
-        _nowPlayersFoundedCount++;
-        return true;
+        lock (_playersLock)
+        {
+            if (_players.ContainsKey(accountId) || _players.Count >= _maxPlayersCount) return false;
+            _players.Add(accountId, serverConnection);
+            _nowPlayersFoundedCount = _players.Count;
+            return true;
+        }
     }
 
     public void RemovePlayerFromMassive(long accountId, bool error = false)
     {
-        Thread.Sleep(200);
-
-        try
+        ServerConnection? removedPlayer;
+        lock (_playersLock)
         {
-            var message = new MatchmakeFailedMessage();
-            {
-                message.SetErrorCode(20);
-            }
-
-            if (error) _players[accountId].GetMessaging()!.Send(message);
-
-            _players.Remove(accountId);
-            _nowPlayersFoundedCount--;
+            if (!_players.Remove(accountId, out removedPlayer)) return;
+            _nowPlayersFoundedCount = _players.Count;
         }
-        catch (Exception)
+
+        if (error)
         {
-            // ignored.
+            try
+            {
+                var message = new MatchmakeFailedMessage();
+                message.SetErrorCode(20);
+                removedPlayer.GetMessaging()!.Send(message);
+            }
+            catch
+            {
+                // The player may already have disconnected.
+            }
         }
     }
 
     public ServerConnection GetPlayerFromMassive(long accountId)
     {
-        return _players.GetValueOrDefault(accountId)!;
+        lock (_playersLock) return _players.GetValueOrDefault(accountId)!;
+    }
+
+    private List<KeyValuePair<long, ServerConnection>> GetPlayersSnapshot()
+    {
+        lock (_playersLock) return _players.ToList();
     }
 
     private void PreUpdate()
@@ -81,7 +90,7 @@ public class MatchmakingManager
             while (_defaultSecondsToStartGame > 1)
             {
                 Thread.Sleep(200);
-                if (_players.Count < 1) _nowRemainedSecondsToStartGame = _defaultSecondsToStartGame;
+                if (GetPlayersSnapshot().Count < 1) _nowRemainedSecondsToStartGame = _defaultSecondsToStartGame;
             }
         });
         
@@ -91,7 +100,7 @@ public class MatchmakingManager
             {
                 Thread.Sleep(1000);
 
-                if (_players.Count >= 1)
+                if (GetPlayersSnapshot().Count >= 1)
                     _nowRemainedSecondsToStartGame = _nowRemainedSecondsToStartGame <= 0
                         ? _defaultSecondsToStartGame
                         : _nowRemainedSecondsToStartGame - 1;
@@ -120,16 +129,17 @@ public class MatchmakingManager
                             message.SetShowTips(_maxPlayersCount > 0);
                         }
 
-                        foreach (var player in _players) player.Value.GetMessaging()!.Send(message);
+                        foreach (var player in GetPlayersSnapshot()) player.Value.GetMessaging()!.Send(message);
                     }
                     catch
                     {
                         // ignored.
                     }
 
-                    if (_nowRemainedSecondsToStartGame <= 1 && _players.Count > 0) StartGame(true);
+                    var queuedPlayers = GetPlayersSnapshot().Count;
+                    if (_nowRemainedSecondsToStartGame <= 1 && queuedPlayers > 0) StartGame(true);
 
-                    if (_players.Count >= _maxPlayersCount) StartGame(false);
+                    if (queuedPlayers >= _maxPlayersCount) StartGame(false);
                 }
                 else
                 {
@@ -138,11 +148,14 @@ public class MatchmakingManager
                         message.SetErrorCode(5);
                     }
 
-                    foreach (var player in _players) player.Value.GetMessaging()!.Send(message);
+                    foreach (var player in GetPlayersSnapshot()) player.Value.GetMessaging()!.Send(message);
 
-                    _nowPlayersFoundedCount = 0;
+                    lock (_playersLock)
+                    {
+                        _players.Clear();
+                        _nowPlayersFoundedCount = 0;
+                    }
                     _nowRemainedSecondsToStartGame = _defaultSecondsToStartGame;
-                    _players.Clear();
                 }
 
                 Thread.Sleep(200);
@@ -152,7 +165,14 @@ public class MatchmakingManager
 
     private void StartGame(bool timeFinished)
     {
-        _nowPlayersFoundedCount = 0;
+        List<KeyValuePair<long, ServerConnection>> players;
+        lock (_playersLock)
+        {
+            if (_players.Count == 0) return;
+            players = _players.ToList();
+            _players.Clear();
+            _nowPlayersFoundedCount = 0;
+        }
         _nowRemainedSecondsToStartGame = _defaultSecondsToStartGame;
 
         if (_slot > 0)
@@ -178,7 +198,7 @@ public class MatchmakingManager
             }
 
             var i = 0;
-            foreach (var player in _players) // player-part.
+            foreach (var player in players) // player-part.
             {
                 if (!InteractiveModule.UdpSessionIdsMassive.ContainsKey(player.Value.GetAccountModel().GetAccountId()))
                     InteractiveModule.UdpSessionIdsMassive.Add(player.Value.GetAccountModel().GetAccountId(),
@@ -250,6 +270,5 @@ public class MatchmakingManager
             }
         }
 
-        _players.Clear();
     }
 }
