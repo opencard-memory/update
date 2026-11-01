@@ -209,9 +209,8 @@ public static class TeamRoomManager
             var name = sender.GetAccountModel()
                 .GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AvatarName)?.ToString() ?? "Brawler";
             room.StreamTick++;
-            var packet = new TeamStreamMessage(roomId, room.StreamTick, senderId, name, message);
             foreach (var member in room.Members)
-                try { member.Connection.GetMessaging()!.Send(packet.CloneForSend()); } catch { }
+                try { member.Connection.GetMessaging()!.Send(new TeamStreamMessage(roomId, room.StreamTick, senderId, name, message)); } catch { }
             return true;
         }
     }
@@ -253,22 +252,6 @@ public static class TeamRoomManager
                 PendingJoinRequests[roomId] = requests = new HashSet<long>();
             requests.Add(id);
             return true;
-        }
-    }
-
-    public static bool ApproveJoin(ServerConnection leaderConnection, long targetAccountId)
-    {
-        lock (Sync)
-        {
-            var leaderId = leaderConnection.GetAccountModel().GetAccountId();
-            if (!PlayerRooms.TryGetValue(leaderId, out var roomId) ||
-                !Rooms.TryGetValue(roomId, out var room) || room.LeaderId != leaderId ||
-                !PendingJoinRequests.TryGetValue(roomId, out var requests) || !requests.Remove(targetAccountId))
-                return false;
-            if (requests.Count == 0) PendingJoinRequests.Remove(roomId);
-            var target = IdentifierListener.GetLogicGameListenerByAccountId(targetAccountId);
-            if (target?.GetServerConnection() == null) return false;
-            return Join(target.GetServerConnection(), roomId);
         }
     }
 
