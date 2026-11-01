@@ -135,6 +135,8 @@ public class MessageManager(
             14351 => TeamJoinMessageReceived((TeamJoinMessage)piranhaMessage),
             14353 => TeamLeaveMessageReceived(),
             14355 => TeamSetMemberReadyMessageReceived(),
+            14365 => TeamInviteMessageReceived((TeamInviteMessage)piranhaMessage),
+            14479 => TeamInvitationResponseMessageReceived((TeamInvitationResponseMessage)piranhaMessage),
             10212 => ChangeAvatarNameMessageReceived((ChangeAvatarNameMessage)piranhaMessage),
             14301 => CreateAllianceMessageReceived((CreateAllianceMessage)piranhaMessage),
             14302 => AskForAllianceDataMessageReceived((AskForAllianceDataMessage)piranhaMessage),
@@ -741,6 +743,20 @@ public class MessageManager(
     private int TeamJoinMessageReceived(TeamJoinMessage message)
     {
         return TeamRoomManager.Join(serverConnection!, message.GetRoomId()) ? 1 : 0;
+    }
+
+    private int TeamInviteMessageReceived(TeamInviteMessage message)
+    {
+        return TeamRoomManager.Invite(serverConnection!, message.GetTargetAccountId()) ? 1 : 0;
+    }
+
+    private int TeamInvitationResponseMessageReceived(TeamInvitationResponseMessage message)
+    {
+        if (message.GetResponse() == 1)
+            return TeamRoomManager.RespondToInvite(serverConnection!, Convert.ToInt32(message.GetRoomId()), true) ? 1 : 0;
+        if (message.GetResponse() == 2)
+            TeamRoomManager.RespondToInvite(serverConnection!, Convert.ToInt32(message.GetRoomId()), false);
+        return 1;
     }
 
     private int TeamSetMemberReadyMessageReceived()
