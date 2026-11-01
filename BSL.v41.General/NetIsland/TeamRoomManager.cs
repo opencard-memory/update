@@ -30,7 +30,7 @@ public static class TeamRoomManager
     private static readonly Dictionary<long, HashSet<int>> PendingInvites = new();
     private static readonly HashSet<long> InvitesBlocked = new();
     private static readonly HashSet<long> TeamChatMuted = new();
-    private static readonly Dictionary<int, HashSet<long>> PendingJoinRequests = new();
+    private static readonly Dictionary<int, Dictionary<long, ServerConnection>> PendingJoinRequests = new();
     private static int _nextRoomId = 1000;
 
     public static bool Create(ServerConnection connection, int roomType, int mapId)
@@ -252,9 +252,44 @@ public static class TeamRoomManager
             if (PlayerRooms.ContainsKey(id) || !Rooms.TryGetValue(roomId, out var room) || room.Members.Count >= 3)
                 return false;
             if (!PendingJoinRequests.TryGetValue(roomId, out var requests))
-                PendingJoinRequests[roomId] = requests = new HashSet<long>();
-            requests.Add(id);
+                PendingJoinRequests[roomId] = requests = new Dictionary<long, ServerConnection>();
+            requests[id] = requester;
+            var leader = room.Members.FirstOrDefault(m => m.Connection.GetAccountModel().GetAccountId() == room.LeaderId);
+            if (leader != null)
+            {
+                var name = requester.GetAccountModel().GetFieldValueByAccountStructureParameterFromAccountModel(AccountStructure.AvatarName)?.ToString() ?? "Brawler";
+                try { leader.Connection.GetMessaging()!.Send(new TeamStreamMessage(roomId, ++room.StreamTick, id, name, "requested to join the team")); } catch { }
+            }
             return true;
+        }
+    }
+
+
+    public static bool ApproveJoin(ServerConnection leaderConnection, long targetAccountId, bool accept)
+    {
+        lock (Sync)
+        {
+            var leaderId = leaderConnection.GetAccountModel().GetAccountId();
+            if (!PlayerRooms.TryGetValue(leaderId, out var roomId) ||
+                !Rooms.TryGetValue(roomId, out var room) || room.LeaderId != leaderId ||
+                !PendingJoinRequests.TryGetValue(roomId, out var requests) ||
+                !requests.Remove(targetAccountId, out var target)) return false;
+            if (requests.Count == 0) PendingJoinRequests.Remove(roomId);
+            if (!accept) return true;
+            return Join(target, roomId);
+        }
+    }
+
+    public static void CancelJoinRequest(ServerConnection requester)
+    {
+        lock (Sync)
+        {
+            var id = requester.GetAccountModel().GetAccountId();
+            foreach (var pair in PendingJoinRequests.ToArray())
+            {
+                pair.Value.Remove(id);
+                if (pair.Value.Count == 0) PendingJoinRequests.Remove(pair.Key);
+            }
         }
     }
 
