@@ -40,10 +40,29 @@ public class MatchmakingManager
 
     public bool AddPlayerToMassive(long accountId, ServerConnection serverConnection)
     {
+        return AddPlayersToMassive(new[] { serverConnection });
+    }
+
+    public bool AddPlayersToMassive(IReadOnlyCollection<ServerConnection> connections)
+    {
         lock (_playersLock)
         {
-            if (_players.ContainsKey(accountId) || _players.Count >= _maxPlayersCount) return false;
-            _players.Add(accountId, serverConnection);
+            var uniqueConnections = connections
+                .GroupBy(connection => connection.GetAccountModel().GetAccountId())
+                .Select(group => group.First())
+                .ToList();
+
+            if (uniqueConnections.Count == 0 ||
+                uniqueConnections.Any(connection => _players.ContainsKey(connection.GetAccountModel().GetAccountId())) ||
+                _players.Count + uniqueConnections.Count > _maxPlayersCount)
+                return false;
+
+            foreach (var connection in uniqueConnections)
+            {
+                var accountId = connection.GetAccountModel().GetAccountId();
+                _players.Add(accountId, connection);
+            }
+
             _nowPlayersFoundedCount = _players.Count;
             return true;
         }
@@ -198,6 +217,8 @@ public class MatchmakingManager
             }
 
             var i = 0;
+            var nextTeamIndex = 0;
+            var teamByRoom = new Dictionary<int, int>();
             foreach (var player in players) // player-part.
             {
                 if (!InteractiveModule.UdpSessionIdsMassive.ContainsKey(player.Value.GetAccountModel().GetAccountId()))
@@ -222,7 +243,21 @@ public class MatchmakingManager
                 var logicPlayer = new LogicPlayer();
                 {
                     logicPlayer.SetPlayerIndex(i);
-                    logicPlayer.SetTeamIndex(i % 2);
+                    var roomId = TeamRoomManager.GetRoomId(player.Value.GetAccountModel().GetAccountId());
+                    int teamIndex;
+                    if (roomId > 0)
+                    {
+                        if (!teamByRoom.TryGetValue(roomId, out teamIndex))
+                        {
+                            teamIndex = nextTeamIndex++ % 2;
+                            teamByRoom[roomId] = teamIndex;
+                        }
+                    }
+                    else
+                    {
+                        teamIndex = nextTeamIndex++ % 2;
+                    }
+                    logicPlayer.SetTeamIndex(teamIndex);
                     logicPlayer.SetBounty(gameModeVariation == 3);
                     logicPlayer.SetAccountModel(player.Value.GetAccountModel());
                     logicPlayer.SetPlayerDisplayData(playerDisplayData);
