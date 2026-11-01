@@ -137,6 +137,9 @@ public class MessageManager(
             14359 => TeamChatMessageReceived((TeamChatMessage)piranhaMessage),
             14777 => SetInvitesBlockedMessageReceived((SetInvitesBlockedMessage)piranhaMessage),
             14778 => SetTeamChatMutedMessageReceived((SetTeamChatMutedMessage)piranhaMessage),
+            14880 => TeamRequestJoinCancelMessageReceived(),
+            14881 => TeamRequestJoinMessageReceived((TeamRequestJoinMessage)piranhaMessage),
+            14882 => TeamRequestJoinApproveMessageReceived((TeamRequestJoinApproveMessage)piranhaMessage),
             14353 => TeamLeaveMessageReceived(),
             14355 => TeamSetMemberReadyMessageReceived(),
             14365 => TeamInviteMessageReceived((TeamInviteMessage)piranhaMessage),
@@ -742,6 +745,24 @@ public class MessageManager(
         return 1;
     }
 
+
+
+    private int TeamRequestJoinMessageReceived(TeamRequestJoinMessage message)
+    {
+        var accountId = serverConnection!.GetAccountModel().GetAccountId();
+        if (message.GetPlayerId() != accountId || message.GetTeamId() < 1 || message.GetTeamId() > int.MaxValue)
+            return 0;
+        return TeamRoomManager.RequestJoin(serverConnection!, (int)message.GetTeamId()) ? 1 : 0;
+    }
+
+    private int TeamRequestJoinApproveMessageReceived(TeamRequestJoinApproveMessage message) =>
+        TeamRoomManager.ApproveJoin(serverConnection!, message.GetJoinerId(), message.GetState()) ? 1 : 0;
+
+    private int TeamRequestJoinCancelMessageReceived()
+    {
+        TeamRoomManager.CancelJoinRequest(serverConnection!);
+        return 1;
+    }
 
     private int TeamKickMessageReceived(TeamKickMessage message) =>
         TeamRoomManager.Kick(serverConnection!, message.GetTargetAccountId()) ? 1 : 0;
