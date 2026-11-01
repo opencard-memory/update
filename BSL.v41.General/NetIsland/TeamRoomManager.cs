@@ -96,6 +96,7 @@ public static class TeamRoomManager
 
     public static bool Join(ServerConnection connection, int roomId)
     {
+        CancelPlayersSearch(connection);
         lock (Sync)
         {
             var accountId = connection.GetAccountModel().GetAccountId();
@@ -112,6 +113,7 @@ public static class TeamRoomManager
 
     public static void Leave(ServerConnection connection, int reason = 0)
     {
+        CancelPlayersSearch(connection);
         lock (Sync)
         {
             var accountId = connection.GetAccountModel().GetAccountId();
