@@ -28,8 +28,6 @@ public static class TeamRoomManager
     private static readonly Dictionary<int, Room> Rooms = new();
     private static readonly Dictionary<long, int> PlayerRooms = new();
     private static readonly Dictionary<long, HashSet<int>> PendingInvites = new();
-    private static readonly HashSet<long> InvitesBlocked = new();
-    private static readonly HashSet<long> TeamChatMuted = new();
     private static readonly Dictionary<int, Dictionary<long, ServerConnection>> PendingJoinRequests = new();
     private static int _nextRoomId = 1000;
 
@@ -55,7 +53,7 @@ public static class TeamRoomManager
         lock (Sync)
         {
             var inviterId = inviterConnection.GetAccountModel().GetAccountId();
-            if (InvitesBlocked.Contains(targetAccountId) ||
+            if (Databases.AccountDatabase.LoadAccount(targetAccountId)?.IsInvitesBlocked() == true ||
                 !PlayerRooms.TryGetValue(inviterId, out var roomId) ||
                 !Rooms.ContainsKey(roomId) ||
                 !inviterConnection.GetAccountModel().GetFriendIds().Contains(targetAccountId) ||
@@ -211,7 +209,7 @@ public static class TeamRoomManager
             room.StreamTick++;
             foreach (var member in room.Members)
             {
-                if (TeamChatMuted.Contains(member.Connection.GetAccountModel().GetAccountId())) continue;
+                if (member.Connection.GetAccountModel().IsTeamChatMuted()) continue;
                 try { member.Connection.GetMessaging()!.Send(new TeamStreamMessage(roomId, room.StreamTick, senderId, name, message)); } catch { }
             }
             return true;
@@ -222,9 +220,8 @@ public static class TeamRoomManager
     {
         lock (Sync)
         {
-            var id = connection.GetAccountModel().GetAccountId();
-            if (blocked) InvitesBlocked.Add(id); else InvitesBlocked.Remove(id);
-            if (blocked) PendingInvites.Remove(id);
+            connection.GetAccountModel().SetInvitesBlocked(blocked);
+            if (blocked) PendingInvites.Remove(connection.GetAccountModel().GetAccountId());
         }
     }
 
@@ -232,8 +229,7 @@ public static class TeamRoomManager
     {
         lock (Sync)
         {
-            var id = connection.GetAccountModel().GetAccountId();
-            if (muted) TeamChatMuted.Add(id); else TeamChatMuted.Remove(id);
+            connection.GetAccountModel().SetTeamChatMuted(muted);
         }
     }
 
