@@ -285,9 +285,9 @@ public class MessageManager(
 
     private int LeaveAllianceMessageReceived(BSL.v41.Logic.Environment.LaserMessage.Laser.Node_11.LeaveAllianceMessage piranhaMessage){ClubManager.Leave(serverConnection!);return 1;}
     private int SendJoinableAlliancesList(){ClubManager.Joinable(serverConnection!);return 1;}
-    private int JoinAllianceMessageReceived(JoinAllianceMessage m){if(!ClubManager.Join(serverConnection!,m.AllianceId))ClubManager.Request(serverConnection!,m.AllianceId);return 1;}
+    private int JoinAllianceMessageReceived(JoinAllianceMessage m){if(!ClubManager.Join(serverConnection!,m.AllianceId))ClubManager.RequestJoin(serverConnection!,m.AllianceId);return 1;}
     private int KickAllianceMemberMessageReceived(KickAllianceMemberMessage m){ClubManager.Kick(serverConnection!,m.AccountId);return 1;}
-    private int ChangeAllianceMemberRoleMessageReceived(ChangeAllianceMemberRoleMessage m){ClubManager.Role(serverConnection!,m.AccountId,m.Role);return 1;}
+    private int ChangeAllianceMemberRoleMessageReceived(ChangeAllianceMemberRoleMessage m){ClubManager.ChangeRole(serverConnection!,m.AccountId,m.Role);return 1;}
     private int ChatToAllianceStreamMessageReceived(ChatToAllianceStreamMessage m){ClubManager.Chat(serverConnection!,m.Message);return 1;}
     private int RequestJoinAllianceMessageReceived(RequestJoinAllianceMessage m){ClubManager.Request(serverConnection!,m.AllianceId);return 1;}
     private int RespondToAllianceJoinRequestMessageReceived(RespondToAllianceJoinRequestMessage m){ClubManager.Respond(serverConnection!,m.AccountId,m.Accept);return 1;}
